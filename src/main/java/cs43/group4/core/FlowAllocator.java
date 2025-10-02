@@ -1,20 +1,24 @@
 package cs43.group4.core;
 
 /**
- * Simple post-processing allocator to map borrowing flows between barangays.
- * For each class c, matches surplus (current > allocated) to deficit (allocated > current)
- * greedily without distances/costs.
+ * Simple post-processing allocator to map borrowing flows between barangays. For each class c,
+ * matches surplus (current > allocated) to deficit (allocated > current) greedily without
+ * distances/costs.
  */
 public final class FlowAllocator {
 
     public static final class Result {
         // flows[c][from][to] amount moved from 'from' barangay to 'to' barangay for class c
         public final double[][][] flows;
-        public Result(double[][][] flows) { this.flows = flows; }
+
+        public Result(double[][][] flows) {
+            this.flows = flows;
+        }
     }
 
     /**
      * Distance-agnostic greedy allocation of borrowing flows.
+     *
      * @param A allocation matrix [Z][C]
      * @param currentPerClass current counts per class [C][Z]
      * @return flows per class [C][Z][Z]
@@ -49,8 +53,10 @@ public final class FlowAllocator {
     }
 
     /**
-     * Distance-aware allocation of borrowing flows using lat/lon (degrees). If any coordinate is NaN, falls back to distance-agnostic.
-     * Greedy strategy: for each class, repeatedly send from nearest surplus barangay to each deficit until all deficits or surpluses are resolved.
+     * Distance-aware allocation of borrowing flows using lat/lon (degrees). If any coordinate is NaN,
+     * falls back to distance-agnostic. Greedy strategy: for each class, repeatedly send from nearest
+     * surplus barangay to each deficit until all deficits or surpluses are resolved.
+     *
      * @param A allocation matrix [Z][C]
      * @param currentPerClass current counts per class [C][Z]
      * @param lat latitude per barangay (degrees)
@@ -72,7 +78,10 @@ public final class FlowAllocator {
         double[][] dist = new double[Z][Z];
         for (int i = 0; i < Z; i++) {
             for (int j = 0; j < Z; j++) {
-                if (i == j) { dist[i][j] = 0.0; continue; }
+                if (i == j) {
+                    dist[i][j] = 0.0;
+                    continue;
+                }
                 dist[i][j] = haversineKm(lat[i], lon[i], lat[j], lon[j]);
             }
         }
@@ -90,16 +99,26 @@ public final class FlowAllocator {
 
             // While there is remaining demand and surplus, match nearest pairs
             while (true) {
-                int def = -1; double needMax = 0.0;
-                for (int i = 0; i < Z; i++) { if (demand[i] > 1e-12 && demand[i] > needMax) { needMax = demand[i]; def = i; } }
+                int def = -1;
+                double needMax = 0.0;
+                for (int i = 0; i < Z; i++) {
+                    if (demand[i] > 1e-12 && demand[i] > needMax) {
+                        needMax = demand[i];
+                        def = i;
+                    }
+                }
                 if (def == -1) break; // no more demand
 
                 // Find nearest surplus to this deficit
-                int src = -1; double bestD = Double.POSITIVE_INFINITY;
+                int src = -1;
+                double bestD = Double.POSITIVE_INFINITY;
                 for (int j = 0; j < Z; j++) {
                     if (surplus[j] > 1e-12) {
                         double d = dist[j][def];
-                        if (d < bestD) { bestD = d; src = j; }
+                        if (d < bestD) {
+                            bestD = d;
+                            src = j;
+                        }
                     }
                 }
                 if (src == -1) break; // no more surplus
@@ -120,8 +139,10 @@ public final class FlowAllocator {
         double dLat = Math.toRadians(lat2 - lat1);
         double dLon = Math.toRadians(lon2 - lon1);
         double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-                 + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                 * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                + Math.cos(Math.toRadians(lat1))
+                        * Math.cos(Math.toRadians(lat2))
+                        * Math.sin(dLon / 2)
+                        * Math.sin(dLon / 2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
     }

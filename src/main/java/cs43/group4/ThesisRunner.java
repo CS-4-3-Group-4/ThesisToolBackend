@@ -6,18 +6,15 @@ import cs43.group4.core.FireflyAlgorithm;
 import cs43.group4.core.FlowAllocator;
 import cs43.group4.core.ObjectiveFunction;
 import cs43.group4.core.ThesisObjective;
-import java.nio.file.Path;
 import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class ThesisRunner {
     public static void main(String[] args) {
         try {
             System.out.println(banner("Run Starting"));
 
-            var data = DataLoader.load(
-                Path.of("data", "barangays.csv"),
-                Path.of("data", "classes.csv")
-            );
+            var data = DataLoader.load(Path.of("data", "barangays.csv"), Path.of("data", "classes.csv"));
             int Z = data.Z, C = data.C;
             int D = Z * C;
 
@@ -40,35 +37,35 @@ public class ThesisRunner {
             }
 
             ObjectiveFunction thesisObj = new ThesisObjective(
-                Z, C,
-                data.r, data.f, data.E, data.AC,
-                data.lambda, data.supply,
-                1e-6, 10.0,
-                null, 1.0,
-                currentPerClass, data.lat, data.lon, 0.01 // 0.01 penalty per km of average movement
-            );
-
+                    Z,
+                    C,
+                    data.r,
+                    data.f,
+                    data.E,
+                    data.AC,
+                    data.lambda,
+                    data.supply,
+                    1e-6,
+                    10.0,
+                    null,
+                    1.0,
+                    currentPerClass,
+                    data.lat,
+                    data.lon,
+                    0.01 // 0.01 penalty per km of average movement
+                    );
 
             final int generations = 300; // How many generations to run and log
             final int precision = 12; // fixed-length decimals for logs and terminal
             final int iterFieldWidth = Integer.toString(generations).length();
-            final String iterFmt = "Iter %" + iterFieldWidth + "d | Fitness Score (Maximization): %." + precision + "f%n";
+            final String iterFmt =
+                    "Iter %" + iterFieldWidth + "d | Fitness Score (Maximization): %." + precision + "f%n";
 
             final StringBuilder iterationLog = new StringBuilder();
             iterationLog.append("=== Iteration log ===\n");
 
-            //Firefly Algorithm Parameters
-            FireflyAlgorithm fa = new FireflyAlgorithm(
-                thesisObj,
-                50,
-                lower,
-                upper,
-                1.0,
-                1.0,
-                0.6,
-                0.05,
-                generations
-            );
+            // Firefly Algorithm Parameters
+            FireflyAlgorithm fa = new FireflyAlgorithm(thesisObj, 50, lower, upper, 1.0, 1.0, 0.6, 0.05, generations);
 
             // Per-iteration progress: log all, print only every 50th
             fa.setProgressListener((generation, bestX) -> {
@@ -81,7 +78,8 @@ public class ThesisRunner {
                 }
                 // Apply same per-class repair as objective
                 for (int c = 0; c < C; c++) {
-                    double used = 0.0; for (int i = 0; i < Z; i++) used += Aiter[i][c];
+                    double used = 0.0;
+                    for (int i = 0; i < Z; i++) used += Aiter[i][c];
                     double cap = data.supply[c];
                     if (used > cap + 1e-6) {
                         double scale = cap / (used + 1e-6);
@@ -92,10 +90,10 @@ public class ThesisRunner {
 
                 // Log every iteration to file buffer
                 iterationLog.append(String.format(
-                    java.util.Locale.US,
-                    "Iter %d: Fitness Score (Maximization) = %." + precision + "f%n",
-                    generation, fit
-                ));
+                        java.util.Locale.US,
+                        "Iter %d: Fitness Score (Maximization) = %." + precision + "f%n",
+                        generation,
+                        fit));
 
                 // Print Fitness Score to terminal every 50 iterations
                 if (generation % 50 == 0) {
@@ -110,10 +108,12 @@ public class ThesisRunner {
 
             double[] x = fa.getBestSolution();
             double[][] A = new double[Z][C];
-            int k = 0; for (int i = 0; i < Z; i++) for (int c = 0; c < C; c++, k++) A[i][c] = Math.max(0.0, x[k]);
+            int k = 0;
+            for (int i = 0; i < Z; i++) for (int c = 0; c < C; c++, k++) A[i][c] = Math.max(0.0, x[k]);
             // Apply same per-class repair as objective for consistent reporting
             for (int c = 0; c < C; c++) {
-                double used = 0.0; for (int i = 0; i < Z; i++) used += A[i][c];
+                double used = 0.0;
+                for (int i = 0; i < Z; i++) used += A[i][c];
                 double cap = data.supply[c];
                 if (used > cap + 1e-6) {
                     double scale = cap / (used + 1e-6);
@@ -126,9 +126,9 @@ public class ThesisRunner {
             Path allocsPath = Path.of("out", "allocations.csv");
             Path logPath = Path.of("out", "iterations.log");
 
-            var flow = (data.lat != null && data.lon != null) ?
-                FlowAllocator.allocate(A, currentPerClass, data.lat, data.lon) :
-                FlowAllocator.allocate(A, currentPerClass);
+            var flow = (data.lat != null && data.lon != null)
+                    ? FlowAllocator.allocate(A, currentPerClass, data.lat, data.lon)
+                    : FlowAllocator.allocate(A, currentPerClass);
             writeFlowsCsv(flow.flows, data, flowsPath);
             writeAllocationsCsv(A, data, allocsPath);
 
@@ -138,7 +138,8 @@ public class ThesisRunner {
             // Printing Final Scores
             System.out.println(banner("Final Fitness Scores"));
             System.out.printf(java.util.Locale.US, "Fitness Score (Maximization): %." + precision + "f%n", fitness);
-            System.out.printf(java.util.Locale.US, "Fitness Score (Minimization): %." + precision + "f%n", minimizedObjective);
+            System.out.printf(
+                    java.util.Locale.US, "Fitness Score (Minimization): %." + precision + "f%n", minimizedObjective);
             System.out.println(line());
             System.out.println();
 
@@ -173,10 +174,12 @@ public class ThesisRunner {
             sb.append(",total\n");
             for (int i = 0; i < data.Z; i++) {
                 double total = 0.0;
-                sb.append(escapeCsv(data.barangayIds[i])).append(",")
-                  .append(escapeCsv(data.barangayNames[i]));
-                for (int c = 0; c < data.C; c++) { sb.append(",").append((long)Math.rint(A[i][c])); total += A[i][c]; }
-                sb.append(",").append((long)Math.rint(total)).append("\n");
+                sb.append(escapeCsv(data.barangayIds[i])).append(",").append(escapeCsv(data.barangayNames[i]));
+                for (int c = 0; c < data.C; c++) {
+                    sb.append(",").append((long) Math.rint(A[i][c]));
+                    total += A[i][c];
+                }
+                sb.append(",").append((long) Math.rint(total)).append("\n");
             }
             Files.writeString(path, sb.toString(), java.nio.charset.StandardCharsets.UTF_8);
 
@@ -197,13 +200,20 @@ public class ThesisRunner {
                         double amt = flows[c][from][to];
                         long units = Math.max(0L, Math.round(amt)); // integer persons
                         if (units > 0L) {
-                            sb.append(escapeCsv(data.classIds[c])).append(",")
-                              .append(escapeCsv(data.classNames[c])).append(",")
-                              .append(escapeCsv(data.barangayIds[from])).append(",")
-                              .append(escapeCsv(data.barangayNames[from])).append(",")
-                              .append(escapeCsv(data.barangayIds[to])).append(",")
-                              .append(escapeCsv(data.barangayNames[to])).append(",")
-                              .append(units).append("\n");
+                            sb.append(escapeCsv(data.classIds[c]))
+                                    .append(",")
+                                    .append(escapeCsv(data.classNames[c]))
+                                    .append(",")
+                                    .append(escapeCsv(data.barangayIds[from]))
+                                    .append(",")
+                                    .append(escapeCsv(data.barangayNames[from]))
+                                    .append(",")
+                                    .append(escapeCsv(data.barangayIds[to]))
+                                    .append(",")
+                                    .append(escapeCsv(data.barangayNames[to]))
+                                    .append(",")
+                                    .append(units)
+                                    .append("\n");
                         }
                     }
                 }
@@ -228,20 +238,36 @@ public class ThesisRunner {
         int Z = data.Z, C = data.C;
         double[] totalPerI = new double[Z];
         double P = 0.0;
-        for (int i = 0; i < Z; i++) { double s = 0.0; for (int c = 0; c < C; c++) s += A[i][c]; totalPerI[i] = s; P += s; }
+        for (int i = 0; i < Z; i++) {
+            double s = 0.0;
+            for (int c = 0; c < C; c++) s += A[i][c];
+            totalPerI[i] = s;
+            P += s;
+        }
         double denomP = Math.max(P, eps);
 
         // Obj1 coverage
-        int Cz = 0; for (int i = 0; i < Z; i++) if (totalPerI[i] > 0) Cz++;
-        double obj1 = (double)Cz / (double)Z;
+        int Cz = 0;
+        for (int i = 0; i < Z; i++) if (totalPerI[i] > 0) Cz++;
+        double obj1 = (double) Cz / (double) Z;
 
         // Obj2 prioritization
-        double obj2sum = 0.0; for (int i = 0; i < Z; i++) { double logTerm = Math.log(1.0 + Math.max(0.0, data.r[i])); for (int c = 0; c < C; c++) obj2sum += A[i][c] * logTerm; }
+        double obj2sum = 0.0;
+        for (int i = 0; i < Z; i++) {
+            double logTerm = Math.log(1.0 + Math.max(0.0, data.r[i]));
+            for (int c = 0; c < C; c++) obj2sum += A[i][c] * logTerm;
+        }
         double obj2 = obj2sum / denomP;
 
         // Obj3 imbalance
-        double mean = 0.0; for (double v : totalPerI) mean += v; mean /= Math.max(1, Z);
-        double var = 0.0; for (double v : totalPerI) { double d = v - mean; var += d * d; }
+        double mean = 0.0;
+        for (double v : totalPerI) mean += v;
+        mean /= Math.max(1, Z);
+        double var = 0.0;
+        for (double v : totalPerI) {
+            double d = v - mean;
+            var += d * d;
+        }
         double std = Math.sqrt(var / Math.max(1, Z));
         double obj3 = std / (mean + eps);
 
@@ -265,7 +291,8 @@ public class ThesisRunner {
         double wSupply = 10.0;
         double penalty = 0.0;
         for (int c = 0; c < C; c++) {
-            double used = 0.0; for (int i = 0; i < Z; i++) used += A[i][c];
+            double used = 0.0;
+            for (int i = 0; i < Z; i++) used += A[i][c];
             double viol = Math.max(0.0, used - data.supply[c]);
             penalty += wSupply * viol * viol;
         }

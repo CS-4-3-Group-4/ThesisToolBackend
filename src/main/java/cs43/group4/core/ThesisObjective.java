@@ -1,54 +1,92 @@
 package cs43.group4.core;
 
 /**
- * Thesis objective implementation.
- * Fitness = Objective1 + Objective2 - Objective3 + Objective4
+ * Thesis objective implementation. Fitness = Objective1 + Objective2 - Objective3 + Objective4
  * FireflyAlgorithm minimizes, so we return -(Fitness) + penalties.
  */
 public class ThesisObjective extends ObjectiveFunction {
 
-    private final int Z, C;              // barangays, classes
-    private final double[] r, f, E, AC;  // per barangay
-    private final double[] lambda;       // per class
-    private final double[] supply;       // per class (global totals)
-    private final double eps;            // small constant
-    private final double wSupply;        // penalty weight for supply violations
-    private final Double Ptarget;        // optional overall target (nullable)
-    private final double wBudget;        // penalty weight for P target
+    private final int Z, C; // barangays, classes
+    private final double[] r, f, E, AC; // per barangay
+    private final double[] lambda; // per class
+    private final double[] supply; // per class (global totals)
+    private final double eps; // small constant
+    private final double wSupply; // penalty weight for supply violations
+    private final Double Ptarget; // optional overall target (nullable)
+    private final double wBudget; // penalty weight for P target
     // Optional distance-aware penalty settings
     private final double[][] currentPerClass; // [C][Z] current counts per class and barangay
-    private final double[] lat;                // [Z] latitude degrees
-    private final double[] lon;                // [Z] longitude degrees
-    private final double wDistance;            // weight for average distance moved (km)
-    private final double[][] distKm;           // [Z][Z] precomputed distances (km) or null
+    private final double[] lat; // [Z] latitude degrees
+    private final double[] lon; // [Z] longitude degrees
+    private final double wDistance; // weight for average distance moved (km)
+    private final double[][] distKm; // [Z][Z] precomputed distances (km) or null
 
-    public ThesisObjective(int Z, int C,
-                           double[] r, double[] f, double[] E, double[] AC,
-                           double[] lambda, double[] supply,
-                           double eps, double wSupply,
-                           Double Ptarget, double wBudget) {
-        this.Z = Z; this.C = C;
-        this.r = r; this.f = f; this.E = E; this.AC = AC;
-        this.lambda = lambda; this.supply = supply;
-        this.eps = eps; this.wSupply = wSupply;
-        this.Ptarget = Ptarget; this.wBudget = wBudget;
-        this.currentPerClass = null; this.lat = null; this.lon = null; this.wDistance = 0.0; this.distKm = null;
+    public ThesisObjective(
+            int Z,
+            int C,
+            double[] r,
+            double[] f,
+            double[] E,
+            double[] AC,
+            double[] lambda,
+            double[] supply,
+            double eps,
+            double wSupply,
+            Double Ptarget,
+            double wBudget) {
+        this.Z = Z;
+        this.C = C;
+        this.r = r;
+        this.f = f;
+        this.E = E;
+        this.AC = AC;
+        this.lambda = lambda;
+        this.supply = supply;
+        this.eps = eps;
+        this.wSupply = wSupply;
+        this.Ptarget = Ptarget;
+        this.wBudget = wBudget;
+        this.currentPerClass = null;
+        this.lat = null;
+        this.lon = null;
+        this.wDistance = 0.0;
+        this.distKm = null;
     }
 
-    // Overload with distance penalty inputs (optional): if lat/lon or current are null, distance penalty is disabled.
-    public ThesisObjective(int Z, int C,
-                           double[] r, double[] f, double[] E, double[] AC,
-                           double[] lambda, double[] supply,
-                           double eps, double wSupply,
-                           Double Ptarget, double wBudget,
-                           double[][] currentPerClass, double[] lat, double[] lon, double wDistance) {
-        this.Z = Z; this.C = C;
-        this.r = r; this.f = f; this.E = E; this.AC = AC;
-        this.lambda = lambda; this.supply = supply;
-        this.eps = eps; this.wSupply = wSupply;
-        this.Ptarget = Ptarget; this.wBudget = wBudget;
+    // Overload with distance penalty inputs (optional): if lat/lon or current are null, distance
+    // penalty is disabled.
+    public ThesisObjective(
+            int Z,
+            int C,
+            double[] r,
+            double[] f,
+            double[] E,
+            double[] AC,
+            double[] lambda,
+            double[] supply,
+            double eps,
+            double wSupply,
+            Double Ptarget,
+            double wBudget,
+            double[][] currentPerClass,
+            double[] lat,
+            double[] lon,
+            double wDistance) {
+        this.Z = Z;
+        this.C = C;
+        this.r = r;
+        this.f = f;
+        this.E = E;
+        this.AC = AC;
+        this.lambda = lambda;
+        this.supply = supply;
+        this.eps = eps;
+        this.wSupply = wSupply;
+        this.Ptarget = Ptarget;
+        this.wBudget = wBudget;
         this.currentPerClass = currentPerClass;
-        this.lat = lat; this.lon = lon;
+        this.lat = lat;
+        this.lon = lon;
         this.wDistance = wDistance;
         this.distKm = (enableDistance()) ? precomputeDistances(lat, lon) : null;
     }
@@ -68,7 +106,8 @@ public class ThesisObjective extends ObjectiveFunction {
 
         // Feasibility repair: scale down per-class columns if they exceed supply
         for (int c = 0; c < C; c++) {
-            double used = 0.0; for (int i = 0; i < Z; i++) used += A[i][c];
+            double used = 0.0;
+            for (int i = 0; i < Z; i++) used += A[i][c];
             if (used > supply[c] + eps) {
                 double scale = supply[c] / (used + eps);
                 for (int i = 0; i < Z; i++) A[i][c] *= scale;
@@ -100,8 +139,14 @@ public class ThesisObjective extends ObjectiveFunction {
         double obj2 = obj2sum / denomP;
 
         // Objective3: Distribution Imbalance (std/mean)
-        double mean = 0.0; for (double v : totalPerI) mean += v; mean /= Math.max(1, Z);
-        double var = 0.0; for (double v : totalPerI) { double d = v - mean; var += d * d; }
+        double mean = 0.0;
+        for (double v : totalPerI) mean += v;
+        mean /= Math.max(1, Z);
+        double var = 0.0;
+        for (double v : totalPerI) {
+            double d = v - mean;
+            var += d * d;
+        }
         double std = Math.sqrt(var / Math.max(1, Z));
         double obj3 = std / (mean + eps);
 
@@ -124,7 +169,8 @@ public class ThesisObjective extends ObjectiveFunction {
         double penalty = 0.0;
         // per class supply (should be near-zero after repair; keep as safety)
         for (int c = 0; c < C; c++) {
-            double used = 0.0; for (int i = 0; i < Z; i++) used += A[i][c];
+            double used = 0.0;
+            for (int i = 0; i < Z; i++) used += A[i][c];
             double viol = Math.max(0.0, used - supply[c]);
             penalty += wSupply * viol * viol;
         }
@@ -134,7 +180,8 @@ public class ThesisObjective extends ObjectiveFunction {
             penalty += wBudget * d * d;
         }
 
-        // Distance penalty: compute average kilometers moved in a greedy nearest-flow sense and penalize it
+        // Distance penalty: compute average kilometers moved in a greedy nearest-flow sense and
+        // penalize it
         if (enableDistance()) {
             double[] tmpDemand = new double[Z];
             double[] tmpSurplus = new double[Z];
@@ -150,14 +197,24 @@ public class ThesisObjective extends ObjectiveFunction {
                 }
                 // Greedy: repeatedly match nearest surplus for each current largest deficit
                 while (true) {
-                    int def = -1; double needMax = 0.0;
-                    for (int i = 0; i < Z; i++) { if (tmpDemand[i] > 1e-12 && tmpDemand[i] > needMax) { needMax = tmpDemand[i]; def = i; } }
+                    int def = -1;
+                    double needMax = 0.0;
+                    for (int i = 0; i < Z; i++) {
+                        if (tmpDemand[i] > 1e-12 && tmpDemand[i] > needMax) {
+                            needMax = tmpDemand[i];
+                            def = i;
+                        }
+                    }
                     if (def == -1) break;
-                    int src = -1; double bestD = Double.POSITIVE_INFINITY;
+                    int src = -1;
+                    double bestD = Double.POSITIVE_INFINITY;
                     for (int j = 0; j < Z; j++) {
                         if (tmpSurplus[j] > 1e-12) {
                             double dkm = distKm[j][def];
-                            if (dkm < bestD) { bestD = dkm; src = j; }
+                            if (dkm < bestD) {
+                                bestD = dkm;
+                                src = j;
+                            }
                         }
                     }
                     if (src == -1) break; // no more surplus
@@ -200,8 +257,10 @@ public class ThesisObjective extends ObjectiveFunction {
         double dLat = Math.toRadians(lat2 - lat1);
         double dLon = Math.toRadians(lon2 - lon1);
         double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-                 + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
-                 * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                + Math.cos(Math.toRadians(lat1))
+                        * Math.cos(Math.toRadians(lat2))
+                        * Math.sin(dLon / 2)
+                        * Math.sin(dLon / 2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
     }

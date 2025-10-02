@@ -42,11 +42,11 @@
                 <version>2.43.0</version>
                 <configuration>
                     <java>
-                        <googleJavaFormat/>
+                        <palantirJavaFormat />
                     </java>
                 </configuration>
             </plugin>
         </plugins>
-    </build>    
+    </build>
 
 </project>
