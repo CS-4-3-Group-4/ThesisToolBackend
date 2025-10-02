@@ -1,0 +1,8 @@
+target/
+.env
+
+bin/
+out/
+
+*.class
+

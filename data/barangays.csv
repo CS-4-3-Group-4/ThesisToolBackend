@@ -1,0 +1,137 @@
+id,name,hazard_level_text,flood_depth_ft,population,exposure,total_personnel,sar_current,ems_current
+ALICIA,Brgy. Alicia,Medium,2.43,, ,51,38,13
+AMIHAN,Brgy. Amihan,Medium,2.10,, ,29,22,7
+APOLONIO_SAMSON,Brgy. Apolonio Samson,Medium,3.523,, ,280,210,70
+BAGONG_SILANGAN,Brgy. Bagong Silangan,High,5.28,, ,889,756,133
+BAGUMBAYAN,Brgy. Bagumbayan,Medium,3.51,, ,184,138,46
+BAHAY_TORO,Brgy. Bahay Toro,Medium,3.56,, ,496,372,124
+BALINGASA,Brgy. Balingasa,Low,0.98,, ,160,104,56
+BALUMBATO,Brgy. Balumbato,Low,1.26,, ,58,38,20
+BATASAN_HILLS,Brgy. Batasan Hills,Medium,3.78,, ,1386,1040,346
+BAYANIHAN,Brgy. Bayanihan,Low,1.18,, ,5,3,2
+BLUE_RIDGE_A,Brgy. Blue Ridge A,Low,0.23,, ,13,8,5
+BLUE_RIDGE_B,Brgy. Blue Ridge B,Low,0.87,, ,9,6,3
+BOTOCAN,Brgy. Botocan,Low,0.752,, ,62,40,22
+BUNGAD,Brgy. Bungad,Medium,2.21,, ,58,44,14
+CAPRI,Brgy. Capri,High,4.986,, ,107,91,16
+CENTRAL,Brgy. Central,Medium,3.35,, ,161,121,40
+COMMONWEALTH,Brgy. Commonwealth,Medium,3.65,, ,1774,1330,444
+CULIAT,Brgy. Culiat,Medium,2.83,, ,564,423,141
+DAMAR,Brgy. Damar,Low,0.53,, ,8,5,3
+DAMAYAN,Brgy. Damayan,Medium,3.00,, ,50,,
+DAMAYANG_LAGI,Brgy. Damayang Lagi,Medium,4.5,, ,162,,
+DEL_MONTE,Brgy. Del Monte,Medium,4.75,, ,88,,
+DIOQUINO_ZOBEL,Brgy. Dioquino Zobel,Medium,2.75,, ,15,,
+DON_MANUEL,Brgy. Don Manuel,Low,1.63,, ,14,,
+DONA_AURORA,Brgy. Doña Aurora,Low,0.325,, ,35,,
+DONA_IMELDA,Brgy. Doña Imelda,High,4.95,, ,98,,
+DONA_JOSEFA,Brgy. Doña Josefa,Low,1.5,, ,15,,
+DUYAN_DUYAN,Brgy. Duyan-Duyan,Low,1.226,, ,28,,
+E_RODRIGUEZ,Brgy. E. Rodriguez,Medium,3.45,, ,145,,
+EAST_KAMIAS,Brgy. East Kamias,High,4.75,, ,53,,
+ESCOBA_1,Brgy. Escopa 1,Low,0.5,, ,18,,
+ESCOBA_2,Brgy. Escopa 2,Low,0.2,, ,14,,
+ESCOBA_3,Brgy. Escopa 3,Low,0.5,, ,66,,
+ESCOBA_4,Brgy. Escopa 4,Low,0.12,, ,15,,
+FAIRVIEW,Brgy. Fairview,Medium,3.00,, ,514,,
+GREATER_LAGRO,Brgy. Greater Lagro,Medium,3.64,, ,196,,
+GULOD,Brgy. Gulod,Medium,4.75,, ,520,,
+HOLY_SPIRIT,Brgy. Holy Spirit,Low,1.22,, ,931,605,326
+HORSESHOE,Brgy. Horseshoe,Medium,3.56,, ,24,,
+IMMACULATE_CONCEPTION,Brgy. Immaculate Conception,Medium,2.75,, ,68,,
+KALIGAYAHAN,Brgy. Kaligayahan,Medium,2.31,, ,503,,
+KALUSUGAN,Brgy. Kalusugan,Medium,4.8,, ,40,30,10
+KAMUNING,Brgy. Kamuning,Medium,4.75,, ,119,89,30
+KATIPUNAN,Brgy. Katipunan,High,4.934,, ,87,74,13
+KAUNLARAN,Brgy. Kaunlaran,Low,0.234,, ,103,67,36
+KRISTONG_HARI,Brgy. Kristong Hari,Medium,3.752,, ,50,38,12
+KRUS_NA_LIGAS,Brgy. Krus na Ligas,Low,1.22,, ,177,115,62
+LAGING_HANDA,Brgy. Laging Handa,Low,1.13,, ,40,26,14
+LIBIS,Brgy. Libis,Medium,4.32,, ,35,26,9
+LOURDES,Brgy. Lourdes,Medium,3.12,, ,38,28,10
+LOYOLA_HEIGHTS,Brgy. Loyola Heights,Low,0.96,, ,176,114,62
+MAHARLIKA,Brgy. Maharlika,Medium,2.87,, ,36,27,9
+MALAYA,Brgy. Malaya,Medium,0.438,, ,22,16,6
+MANGGA,Brgy. Mangga,Low,1.117,, ,8,5,3
+MANRESA,Brgy. Manresa,Medium,4.32,, ,143,107,36
+MARIANA,Brgy. Mariana,Medium,3.218,, ,100,75,25
+MARIBLO,Brgy. Mariblo,Low,0.791,, ,29,19,10
+MARILAG,Brgy. Marilag,Low,0.81,, ,104,68,36
+MASAGANA,Brgy. Masagana,Low,1.274,, ,35,23,12
+MASAMBONG,Brgy. Masambong,Medium,4.197,, ,73,55,18
+MATANDANG_BALARA,Brgy. Matandang Balara,Medium,4.819,, ,578,434,144
+MILAGROSA,Brgy. Milagrosa,Low,0.912,, ,56,36,20
+NS_AMORANTO,Brgy. N. S. Amoranto,Medium,3.16,, ,50,38,12
+NAGKAISANG_NAYON,Brgy. Nagkaisang Nayon,Medium,2.812,, ,448,336,112
+NAYONG_KANLURAN,Brgy. Nayong Kanluran,Medium,4.819,, ,20,15,5
+NEW_ERA,Brgy. New Era,Medium,2.121,, ,117,88,29
+NORTH_FAIRVIEW,Brgy. North Fairview,Low,0.73,, ,370,240,130
+NOVALICHES_PROPER,Brgy. Novaliches Proper,Medium,3.812,, ,129,97,32
+OBRERO,Brgy. Obrero,Medium,2.873,, ,79,59,20
+OLD_CAPITOL_SITE,Brgy. Old Capitol Site,Medium,3.87,, ,11,8,3
+PAANG_BUNDOK,Brgy. Paang Bundok,Low,1.0,, ,40,26,14
+PAG_IBIG_SA_NAYON,Brgy. Pag-Ibig sa Nayon,Medium,2.24,, ,49,37,12
+PALIGSAHAN,Brgy. Paligsahan,Medium,2.7,, ,29,22,7
+PALTOK,Brgy. Paltok,Medium,2.223,, ,151,113,38
+PANSOL,Brgy. Pansol,Medium,3.4,, ,293,220,73
+PARAISO,Brgy. Paraiso,Medium,4.564,, ,29,22,7
+PASONG_PUTIK_PROPER,Brgy. Pasong Putik Proper,Medium,1.72,, ,332,249,83
+PASONG_TAMO,Brgy. Pasong Tamo,Medium,2.43,, ,921,691,230
+PAYATAS,Brgy. Payatas,Medium,3.58,, ,1163,872,291
+PHILAM,Brgy. Philam,Medium,2.472,, ,21,16,5
+PINAGKAISAHAN,Brgy. Pinagkaisahan,Medium,3.564,, ,36,27,9
+PINYAHAN,Brgy. Pinyahan,Medium,4.3,, ,182,136,46
+PROJECT_6,Brgy. Project 6,Medium,2.77,, ,99,74,25
+QUIRINO_2A,Brgy. Quirino 2-A,Medium,3.2,, ,38,28,10
+QUIRINO_2B,Brgy. Quirino 2-B,Medium,2.42,, ,33,25,8
+QUIRINO_2C,Brgy. Quirino 2-C,Medium,4.25,, ,27,20,7
+QUIRINO_3A,Brgy. Quirino 3-A,Medium,2.74,, ,9,7,2
+QUIRINO_3B,Brgy. Quirino 3-B,Medium,3.84,, ,32,27,5
+RAMON_MAGSAYSAY,Brgy. Ramon Magsaysay,Medium,4.03,, ,119,89,30
+ROXAS,Brgy. Roxas,High,4.953,, ,89,67,22
+SACRED_HEART,Brgy. Sacred Heart,Medium,1.73,, ,51,33,18
+SAINT_PETER,Brgy. Saint Peter,Medium,2.37,, ,34,22,12
+SAINT_IGNATIUS,Brgy. Saint Ignatius,Low,1.27,, ,17,11,6
+SALVACION,Brgy. Salvacion,Low,0.8,, ,56,42,14
+SAN_AGUSTIN,Brgy. San Agustin,Low,0.67,, ,211,158,53
+SAN_ANTONIO,Brgy. San Antonio,Medium,3.45,, ,185,120,65
+SAN_BARTOLOME,Brgy. San Bartolome,Medium,3.22,, ,426,277,149
+SAN_ISIDRO,Brgy. San Isidro,Low,0.45,, ,55,36,19
+SAN_ISIDRO_LABRADOR,Brgy. San Isidro Labrador,Low,0.64,, ,52,39,13
+SAN_JOSE,Brgy. San Jose,Low,0.43,, ,49,37,12
+SAN_MARTIN_DE_PORRES,Brgy. San Martin de Porres,Medium,2.12,, ,97,63,34
+SAN_ROQUE,Brgy. San Roque,Low,0.2,, ,159,103,56
+SAN_VICENTE,Brgy. San Vicente,Low,0.98,, ,60,39,21
+SANGANDAAN,Brgy. Sangandaan,Medium,3.45,, ,175,131,44
+SANTOL,Brgy. Santol,Medium,1.56,, ,53,39,14
+SAUYO,Brgy. Sauyo,Low,1.4,, ,635,413,222
+SIENA,Brgy. Siena,Medium,4.56,, ,17,13,4
+SIKATUNA_VILLAGE,Brgy. Sikatuna Village,Low,0.56,, ,51,33,18
+SILANGAN,Brgy. Silangan,Medium,3.24,, ,40,30,10
+SOCORRO,Brgy. Socorro,Medium,3.47,, ,185,139,46
+SOUTH_TRIANGLE,Brgy. South Triangle,High,4.983,, ,121,103,18
+STA_CRUZ,Brgy. Sta. Cruz,Medium,2.65,, ,88,63,25
+STA_LUCIA,Brgy. Sta. Lucia,High,5.21,, ,235,200,35
+STA_MONICA,Brgy. Sta. Monica,High,5.43,, ,431,366,65
+STA_TERESITA,Brgy. Sta. Teresita,Low,0.88,, ,98,64,34
+STO_CRISTO,Brgy. Sto. Cristo,Medium,2.465,, ,215,161,54
+STO_DOMINGO,Brgy. Sto. Domingo,High,5.13,, ,96,82,14
+STO_NINO,Brgy. Sto. Niño,Low,0.4,, ,59,38,21
+TAGUMPAY,Brgy. Tagumpay,Medium,3.267,, ,19,14,5
+TALAYAN,Brgy. Talayan,High,5.032,, ,37,31,6
+TALIPAPA,Brgy. Talipapa,Medium,4.197,, ,324,243,81
+TANDANG_SORA,Brgy. Tandang Sora,Medium,3.291,, ,692,519,173
+TATALON,Brgy. Tatalon,Medium,4.38,, ,461,346,115
+TEACHERS_VILLAGE_EAST,Brgy. Teacher’s Village East,Low,0.917,, ,20,13,7
+TEACHERS_VILLAGE_WEST,Brgy. Teacher’s Village West,Low,1.102,, ,18,16,2
+UGONG_NORTE,Brgy. Ugong Norte,Medium,2.518,, ,52,39,13
+UNANG_SIGAW,Brgy. Unang Sigaw,Low,1.284,, ,79,35,19
+UP_CAMPUS,Brgy. UP Campus,Medium,3.312,, ,392,294,98
+UP_VILLAGE,Brgy. UP Village,Low,0.873,, ,26,17,9
+VALENCIA,Brgy. Valencia,Medium,4.112,, ,91,68,23
+VASRA,Brgy. Vasra,Medium,2.678,, ,61,46,15
+VETERANS_VILLAGE,Brgy. Veterans Village,Medium,3.284,, ,106,80,26
+VILLA_MARIA_CLARA,Brgy. Villa Maria Clara,Low,1.482,, ,20,13,7
+WEST_TRIANGLE,Brgy. West Triangle,Medium,3.564,, ,20,15,5
+WEST_KAMIAS,Brgy. West Kamias,Medium,3.193,, ,34,26,8
+WHITE_PLAINS,Brgy. White Plains,Medium,2.862,, ,30,22,8
