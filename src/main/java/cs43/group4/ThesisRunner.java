@@ -10,6 +10,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class ThesisRunner {
+    private static double bestFitness;
+    private static double executionTime;
+    private static double memoryUsage;
+
     public static void main(String[] args) {
         try {
             System.out.println(banner("Run Starting"));
@@ -101,7 +105,23 @@ public class ThesisRunner {
                 }
             });
 
+            // Before Optimization
+            Runtime runtime = Runtime.getRuntime();
+            long memoryBefore = runtime.totalMemory() - runtime.freeMemory();
+            long startTime = System.nanoTime();
+
             fa.optimize();
+
+            long endTime = System.nanoTime();
+            long memoryAfter = runtime.totalMemory() - runtime.freeMemory();
+
+            executionTime = roundToPrecision((endTime - startTime) / 1_000_000.0, precision); // Convert ns to ms
+            // memoryUsage = roundToPrecision((memoryAfter - memoryBefore) / (1024.0 * 1024.0), precision);
+            // Convert bytes to MB
+            memoryUsage = memoryAfter - memoryBefore; // in bytes
+
+            System.out.println("Execution Time: " + executionTime + " ms");
+            System.out.println("Memory Usage: " + memoryUsage + " bytes");
 
             System.out.println(line());
             System.out.println();
@@ -134,6 +154,9 @@ public class ThesisRunner {
 
             double fitness = estimateFitness(A, data, 1e-6);
             double minimizedObjective = -(fitness) + estimateSupplyPenalty(A, data);
+
+            bestFitness = roundToPrecision(fitness, precision);
+            System.out.println("Best Fitness Score (Maximization) from the bestFitness var: " + bestFitness);
 
             // Printing Final Scores
             System.out.println(banner("Final Fitness Scores"));
@@ -312,5 +335,10 @@ public class ThesisRunner {
 
     private static String line() {
         return "=".repeat(BANNER_WIDTH);
+    }
+
+    public static double roundToPrecision(double value, int precision) {
+        double scale = Math.pow(10, precision);
+        return Math.round(value * scale) / scale;
     }
 }
