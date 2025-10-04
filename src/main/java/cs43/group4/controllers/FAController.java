@@ -32,7 +32,7 @@ public class FAController {
             ctx.json(Map.of("message", "Algorithm stopped"));
         } else {
             Log.debug("Stop requested but no algorithm running");
-            ctx.status(404).json(Map.of("error", "No running algorithm to stop"));
+            ctx.status(400).json(Map.of("error", "No running algorithm to stop"));
         }
     }
 
