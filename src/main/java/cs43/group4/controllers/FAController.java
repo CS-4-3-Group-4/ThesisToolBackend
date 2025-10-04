@@ -22,6 +22,7 @@ public class FAController {
     }
 
     public void postRun(Context ctx) {
+        Log.info("Algorithm run requested");
         if (faRunner != null && faRunner.isRunning()) {
             Log.warn("Attempted to start algorithm while one is already running");
             ctx.status(409).json(Map.of("error", "Algorithm already running"));
@@ -29,7 +30,6 @@ public class FAController {
         }
 
         try {
-            Log.info("Algorithm run requested");
             AlgorithmParams params;
             if (ctx.body().isBlank()) {
                 params = new AlgorithmParams(); // use defaults
@@ -62,6 +62,7 @@ public class FAController {
     }
 
     public void postStop(Context ctx) {
+        Log.info("Algorithm stop requested");
         if (faRunner != null && faRunner.isRunning()) {
             Log.warn("Algorithm stopped by user request");
             faRunner.stop();
