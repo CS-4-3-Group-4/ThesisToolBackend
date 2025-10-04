@@ -28,22 +28,32 @@ public class Main {
         Log.info("API Endpoints:");
         Log.info("  Utility:");
         Log.info("    GET  /health                             - Health check");
-        Log.info("  Algorithm Control:");
-        Log.info("    GET  /algorithm/status                   - Get algorithm status");
-        Log.info("    POST /algorithm/run                      - Start algorithm");
-        Log.info("    POST /algorithm/stop                     - Stop running algorithm");
-        Log.info("  Results:");
-        Log.info("    GET  /algorithm/results                  - Get final results");
-        Log.info("    GET  /algorithm/iterations               - Get iteration history");
-        Log.info("  Downloads:");
-        Log.info("    GET  /algorithm/download/flows           - Download flows CSV");
-        Log.info("    GET  /algorithm/download/allocations     - Download allocations CSV");
+        Log.info("");
+        Log.info("  FA Algorithm:");
+        Log.info("    Control:");
+        Log.info("      GET  /fa/status                        - Get algorithm status");
+        Log.info("      POST /fa/run                           - Start algorithm");
+        Log.info("      POST /fa/stop                          - Stop running algorithm");
+        Log.info("    Results:");
+        Log.info("      GET  /fa/results                       - Get final results");
+        Log.info("      GET  /fa/iterations                    - Get iteration history");
+        Log.info("    Downloads:");
+        Log.info("      GET  /fa/download/flows                - Download flows CSV");
+        Log.info("      GET  /fa/download/allocations          - Download allocations CSV");
+        Log.info("");
+        Log.info("  EFA Algorithm:");
+        Log.info("    Control:");
+        Log.info("      (Coming soon)");
+        Log.info("    Results:");
+        Log.info("      (Coming soon)");
+        Log.info("    Downloads:");
+        Log.info("      (Coming soon)");
         Log.info("═══════════════════════════════════════════════════════════");
 
-        app.get("/algorithm/status", faController::getStatus);
-        app.post("/algorithm/run", faController::postRun);
-        app.post("/algorithm/stop", faController::postStop);
-        app.get("/algorithm/results", faController::getResults);
-        app.get("/algorithm/iterations", faController::getIterations);
+        app.get("/fa/status", faController::getStatus);
+        app.post("/fa/run", faController::postRun);
+        app.post("/fa/stop", faController::postStop);
+        app.get("/fa/results", faController::getResults);
+        app.get("/fa/iterations", faController::getIterations);
     }
 }
