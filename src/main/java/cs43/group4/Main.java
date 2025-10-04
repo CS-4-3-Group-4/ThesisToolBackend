@@ -30,13 +30,18 @@ public class Main {
         Log.info("    GET  /health                             - Health check");
         Log.info("");
         Log.info("  FA Algorithm:");
-        Log.info("    Control:");
-        Log.info("      GET  /fa/status                        - Get algorithm status");
-        Log.info("      POST /fa/run                           - Start algorithm");
+        Log.info("    General:");
+        Log.info("      GET  /fa/status                        - Get current status");
         Log.info("      POST /fa/stop                          - Stop running algorithm");
-        Log.info("    Results:");
-        Log.info("      GET  /fa/results                       - Get final results");
+        Log.info("      GET  /fa/results                       - Get results");
         Log.info("      GET  /fa/iterations                    - Get iteration history");
+        Log.info("");
+        Log.info("    Single Run:");
+        Log.info("      POST /fa/single/run                    - Start single run");
+        Log.info("");
+        Log.info("    Multiple Runs:");
+        Log.info("      POST /fa/multiple/run?runs=N           - Start N runs (2-100)");
+        Log.info("");
         Log.info("    Downloads:");
         Log.info("      GET  /fa/download/flows                - Download flows CSV");
         Log.info("      GET  /fa/download/allocations          - Download allocations CSV");
@@ -50,10 +55,16 @@ public class Main {
         Log.info("      (Coming soon)");
         Log.info("═══════════════════════════════════════════════════════════");
 
+        // General endpoints (work for both single and multiple runs)
         app.get("/fa/status", faController::getStatus);
-        app.post("/fa/run", faController::postRun);
         app.post("/fa/stop", faController::postStop);
         app.get("/fa/results", faController::getResults);
         app.get("/fa/iterations", faController::getIterations);
+
+        // Single run
+        app.post("/fa/single/run", faController::postSingleRun);
+
+        // Multiple runs
+        app.post("/fa/multiple/run", faController::postMultipleRun);
     }
 }

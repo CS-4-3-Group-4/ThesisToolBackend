@@ -1,5 +1,6 @@
 package cs43.group4;
 
+import com.sun.management.ThreadMXBean;
 import cs43.group4.core.DataLoader;
 import cs43.group4.core.DataLoader.Data;
 import cs43.group4.core.FireflyAlgorithm;
@@ -8,15 +9,11 @@ import cs43.group4.core.ObjectiveFunction;
 import cs43.group4.core.ThesisObjective;
 import cs43.group4.utils.IterationResult;
 import cs43.group4.utils.Log;
+import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.lang.management.ManagementFactory;
-import com.sun.management.ThreadMXBean;
 
 public class FARunner {
     private final AlgorithmParams params;
@@ -24,149 +21,236 @@ public class FARunner {
     private volatile boolean stopped = false;
     private volatile String error = null;
 
+    // Single run state
     private final List<IterationResult> iterationHistory = new CopyOnWriteArrayList<>();
     private Map<String, Object> results = null;
-
     private int currentIteration = 0;
     private double bestFitness;
     private double executionTime;
     private double memoryUsage;
 
-    private final int precision = 12; // fixed-length decimals for logs and terminal
+    // Multiple runs state
+    private int totalRuns = 1;
+    private int currentRun = 0;
+    private final List<RunResult> multipleRunResults = new CopyOnWriteArrayList<>();
+    private final List<String> multipleRunErrors = new CopyOnWriteArrayList<>();
+    private long multiRunStartTime;
+    private long multiRunEndTime;
+
+    private final int precision = 12;
 
     public FARunner(AlgorithmParams params) {
         this.params = params;
     }
 
+    // ========== SINGLE RUN ==========
+
     public void run() throws Exception {
         running = true;
         try {
-            var data = DataLoader.load(Path.of("data", "barangays.csv"), Path.of("data", "classes.csv"));
-            int Z = data.Z, C = data.C;
-            int D = Z * C;
+            executeSingleRun();
+        } catch (InterruptedException e) {
+            this.error = "Stopped by user.";
+            System.err.println("Stopped by user.");
+        } catch (Exception e) {
+            this.error = "FARunner error: " + e.getMessage();
+            System.err.println("FARunner error: " + e.getMessage());
+            throw e;
+        } finally {
+            running = false;
+        }
+    }
 
-            double[] lower = new double[D];
-            double[] upper = new double[D];
-            for (int i = 0; i < Z; i++) {
-                for (int c = 0; c < C; c++) {
-                    int k = i * C + c;
-                    lower[k] = 0.0;
-                    double cap = Math.max(1.0, Math.min(data.supply[c], data.AC[i] + 200));
-                    upper[k] = cap;
+    // ========== MULTIPLE RUNS ==========
+
+    public void runMultiple(int numRuns) throws Exception {
+        if (numRuns < 2) {
+            throw new IllegalArgumentException("Number of runs must be at least 2");
+        }
+        if (numRuns > 100) {
+            throw new IllegalArgumentException("Number of runs cannot exceed 100");
+        }
+
+        running = true;
+        totalRuns = numRuns;
+        multipleRunResults.clear();
+        multipleRunErrors.clear();
+        multiRunStartTime = System.currentTimeMillis();
+
+        try {
+            Log.info("Starting " + numRuns + " runs");
+
+            for (int run = 1; run <= numRuns; run++) {
+                if (stopped) {
+                    Log.warn("Multiple runs stopped by user at run " + run);
+                    break;
+                }
+
+                currentRun = run;
+                Log.info("Starting run " + run + "/" + numRuns);
+
+                try {
+                    // Clear single-run state for each run
+                    iterationHistory.clear();
+                    results = null;
+                    currentIteration = 0;
+
+                    // Execute single run
+                    executeSingleRun();
+
+                    // Store results
+                    if (results != null) {
+                        multipleRunResults.add(new RunResult(run, results));
+                        Log.info("Run " + run + "/" + numRuns + " completed successfully");
+                    }
+
+                } catch (InterruptedException e) {
+                    Log.warn("Run " + run + " stopped by user");
+                    multipleRunErrors.add("Run " + run + ": Stopped by user");
+                    break;
+                } catch (Exception e) {
+                    Log.error("Run " + run + " failed: %s", e.getMessage(), e);
+                    multipleRunErrors.add("Run " + run + ": " + e.getMessage());
                 }
             }
 
-            // Prepare current per-class counts [C][Z] for distance penalty and flows
-            double[][] currentPerClass = new double[C][Z];
-            for (int i = 0; i < Z; i++) {
-                if (C >= 1) currentPerClass[0][i] = data.sarCurrent[i];
-                if (C >= 2) currentPerClass[1][i] = data.emsCurrent[i];
+            multiRunEndTime = System.currentTimeMillis();
+            Log.info("Completed " + multipleRunResults.size() + " out of " + numRuns + " runs");
+
+        } catch (Exception e) {
+            this.error = "Multiple runs error: " + e.getMessage();
+            System.err.println("Multiple runs error: " + e.getMessage());
+            throw e;
+        } finally {
+            running = false;
+            currentRun = 0;
+        }
+    }
+
+    // ========== SHARED EXECUTION LOGIC ==========
+
+    private void executeSingleRun() throws Exception {
+        var data = DataLoader.load(Path.of("data", "barangays.csv"), Path.of("data", "classes.csv"));
+        int Z = data.Z, C = data.C;
+        int D = Z * C;
+
+        double[] lower = new double[D];
+        double[] upper = new double[D];
+        for (int i = 0; i < Z; i++) {
+            for (int c = 0; c < C; c++) {
+                int k = i * C + c;
+                lower[k] = 0.0;
+                double cap = Math.max(1.0, Math.min(data.supply[c], data.AC[i] + 200));
+                upper[k] = cap;
             }
+        }
 
-            ObjectiveFunction thesisObj = new ThesisObjective(
-                    Z,
-                    C,
-                    data.r,
-                    data.f,
-                    data.E,
-                    data.AC,
-                    data.lambda,
-                    data.supply,
-                    1e-6,
-                    10.0,
-                    null,
-                    1.0,
-                    currentPerClass,
-                    data.lat,
-                    data.lon,
-                    0.01 // 0.01 penalty per km of average movement
-                    );
+        double[][] currentPerClass = new double[C][Z];
+        for (int i = 0; i < Z; i++) {
+            if (C >= 1) currentPerClass[0][i] = data.sarCurrent[i];
+            if (C >= 2) currentPerClass[1][i] = data.emsCurrent[i];
+        }
 
-            // Firefly Algorithm Parameters
-            FireflyAlgorithm fa = new FireflyAlgorithm(
-                    thesisObj,
-                    params.numFireflies,
-                    lower,
-                    upper,
-                    params.gamma,
-                    params.beta,
-                    params.alpha0,
-                    params.alphaFinal,
-                    params.generations);
+        ObjectiveFunction thesisObj = new ThesisObjective(
+                Z,
+                C,
+                data.r,
+                data.f,
+                data.E,
+                data.AC,
+                data.lambda,
+                data.supply,
+                1e-6,
+                10.0,
+                null,
+                1.0,
+                currentPerClass,
+                data.lat,
+                data.lon,
+                0.01);
 
-            // Per-iteration progress: log all, print only every 50th
-            fa.setProgressListener((generation, bestX) -> {
-                if (stopped) return;
+        FireflyAlgorithm fa = new FireflyAlgorithm(
+                thesisObj,
+                params.numFireflies,
+                lower,
+                upper,
+                params.gamma,
+                params.beta,
+                params.alpha0,
+                params.alphaFinal,
+                params.generations);
 
-                currentIteration = generation;
-                double[][] Aiter = new double[Z][C];
-                int kk2 = 0;
-                for (int i = 0; i < Z; i++) {
-                    for (int c = 0; c < C; c++, kk2++) {
-                        Aiter[i][c] = Math.max(0.0, bestX[kk2]);
-                    }
+        fa.setProgressListener((generation, bestX) -> {
+            if (stopped) return;
+
+            currentIteration = generation;
+            double[][] Aiter = new double[Z][C];
+            int kk2 = 0;
+            for (int i = 0; i < Z; i++) {
+                for (int c = 0; c < C; c++, kk2++) {
+                    Aiter[i][c] = Math.max(0.0, bestX[kk2]);
                 }
-                // Apply same per-class repair as objective
-                for (int c = 0; c < C; c++) {
-                    double used = 0.0;
-                    for (int i = 0; i < Z; i++) used += Aiter[i][c];
-                    double cap = data.supply[c];
-                    if (used > cap + 1e-6) {
-                        double scale = cap / (used + 1e-6);
-                        for (int i = 0; i < Z; i++) Aiter[i][c] *= scale;
-                    }
-                }
-                double fit = estimateFitness(Aiter, data, 1e-6);
-                fit = roundToPrecision(fit);
-                iterationHistory.add(new IterationResult(generation, fit));
-
-                // Print Fitness Score to terminal every 50 iterations
-                if (generation % 50 == 0) {
-                    Log.info("Iter " + generation + ": Fitness Score (Maximization) = " + fit);
-                }
-            });
-
-            // Before Optimization
-            ThreadMXBean threadBean = (ThreadMXBean) ManagementFactory.getThreadMXBean();
-            long threadId = Thread.currentThread().getId();
-            long allocatedBefore = threadBean.getThreadAllocatedBytes(threadId);
-            long startTime = System.nanoTime();
-
-            fa.optimize();
-            checkStopped();
-
-            /// After Optimization
-            long endTime = System.nanoTime();
-            long allocatedAfter = threadBean.getThreadAllocatedBytes(threadId);
-
-            double[] x = fa.getBestSolution();
-            double[][] A = new double[Z][C];
-            int k = 0;
-            for (int i = 0; i < Z; i++) for (int c = 0; c < C; c++, k++) A[i][c] = Math.max(0.0, x[k]);
-            // Apply same per-class repair as objective for consistent reporting
+            }
             for (int c = 0; c < C; c++) {
                 double used = 0.0;
-                for (int i = 0; i < Z; i++) used += A[i][c];
+                for (int i = 0; i < Z; i++) used += Aiter[i][c];
                 double cap = data.supply[c];
                 if (used > cap + 1e-6) {
                     double scale = cap / (used + 1e-6);
-                    for (int i = 0; i < Z; i++) A[i][c] *= scale;
+                    for (int i = 0; i < Z; i++) Aiter[i][c] *= scale;
                 }
             }
+            double fit = estimateFitness(Aiter, data, 1e-6);
+            fit = roundToPrecision(fit);
+            iterationHistory.add(new IterationResult(generation, fit));
 
-            double fitness = estimateFitness(A, data, 1e-6);
-            double minimizedObjective = -(fitness) + estimateSupplyPenalty(A, data);
+            if (generation % 50 == 0) {
+                String runPrefix = (totalRuns > 1) ? "[Run " + currentRun + "/" + totalRuns + "] " : "";
+                Log.info(runPrefix + "Iter " + generation + ": Fitness Score (Maximization) = " + fit);
+            }
+        });
 
-            bestFitness = roundToPrecision(fitness);
-            executionTime = roundToPrecision((endTime - startTime) / 1_000_000.0); // Convert ns to ms
-            memoryUsage = allocatedAfter - allocatedBefore; // bytes
+        ThreadMXBean threadBean = (ThreadMXBean) ManagementFactory.getThreadMXBean();
+        long threadId = Thread.currentThread().getId();
+        long allocatedBefore = threadBean.getThreadAllocatedBytes(threadId);
+        long startTime = System.nanoTime();
 
+        fa.optimize();
+        checkStopped();
+
+        long endTime = System.nanoTime();
+        long allocatedAfter = threadBean.getThreadAllocatedBytes(threadId);
+
+        double[] x = fa.getBestSolution();
+        double[][] A = new double[Z][C];
+        int k = 0;
+        for (int i = 0; i < Z; i++) for (int c = 0; c < C; c++, k++) A[i][c] = Math.max(0.0, x[k]);
+
+        for (int c = 0; c < C; c++) {
+            double used = 0.0;
+            for (int i = 0; i < Z; i++) used += A[i][c];
+            double cap = data.supply[c];
+            if (used > cap + 1e-6) {
+                double scale = cap / (used + 1e-6);
+                for (int i = 0; i < Z; i++) A[i][c] *= scale;
+            }
+        }
+
+        double fitness = estimateFitness(A, data, 1e-6);
+        double minimizedObjective = -(fitness) + estimateSupplyPenalty(A, data);
+
+        bestFitness = roundToPrecision(fitness);
+        executionTime = roundToPrecision((endTime - startTime) / 1_000_000.0);
+        memoryUsage = allocatedAfter - allocatedBefore;
+
+        // Only write outputs and log for single runs (not in multiple runs mode)
+        if (totalRuns == 1) {
             Log.info("Execution Time: " + executionTime + " ms");
-            Log.info("Memory Allocated: " + memoryUsage + " bytes (" + String.format("%.2f", memoryUsage / (1024.0 * 1024.0)) + " MB)");
+            Log.info("Memory Allocated: " + memoryUsage + " bytes ("
+                    + String.format("%.2f", memoryUsage / (1024.0 * 1024.0)) + " MB)");
             Log.info("Best Fitness Score (Maximization) = " + bestFitness);
             Log.info("Best Fitness Score (Minimization) = " + minimizedObjective);
 
-            // Write outputs (flows and allocations to CSV files and iteration log to .log file)
             Path flowsPath = Path.of("out", "flows.csv");
             Path allocsPath = Path.of("out", "allocations.csv");
             Path logPath = Path.of("out", "iterations.log");
@@ -178,40 +262,227 @@ public class FARunner {
             writeAllocationsCsv(A, data, allocsPath);
 
             results = Map.of(
-                    "fitnessMaximization",
-                    fitness,
-                    "fitnessMinimization",
-                    minimizedObjective,
-                    "totalIterations",
-                    params.generations,
-                    "flowsFile",
-                    flowsPath.toString(),
-                    "allocationsFile",
-                    allocsPath.toString());
+                    "fitnessMaximization", fitness,
+                    "fitnessMinimization", minimizedObjective,
+                    "totalIterations", params.generations,
+                    "executionTimeMs", executionTime,
+                    "memoryBytes", memoryUsage,
+                    "flowsFile", flowsPath.toString(),
+                    "allocationsFile", allocsPath.toString());
 
-            // Output Piles Section
             System.out.println(banner("Output Files"));
             System.out.println("Wrote allocations CSV to: " + allocsPath.toString());
             System.out.println("Wrote flows CSV to: " + flowsPath.toString());
             System.out.println("Wrote iteration log to: " + logPath.toString());
             System.out.println(line());
             System.out.println();
-        } catch (InterruptedException e) {
-            this.error = "Stopped by user.";
-            System.err.println("Stopped by user.");
-        } catch (Exception e) {
-            this.error = "ThesisRunner error: " + e.getMessage();
-            System.err.println("ThesisRunner error: " + e.getMessage());
-        } finally {
-            running = false;
+        } else {
+            // For multiple runs, just store minimal results
+            results = Map.of(
+                    "fitnessMaximization", fitness,
+                    "fitnessMinimization", minimizedObjective,
+                    "executionTimeMs", executionTime,
+                    "memoryBytes", memoryUsage);
         }
     }
+
+    // ========== STATUS & RESULTS ==========
+
+    public Map<String, Object> getStatus() {
+        Map<String, Object> status = new HashMap<>();
+        status.put("running", running);
+
+        if (totalRuns > 1) {
+            // Multiple runs status
+            status.put("mode", "multiple");
+            status.put("currentRun", currentRun);
+            status.put("totalRuns", totalRuns);
+            status.put("completedRuns", multipleRunResults.size());
+            status.put("failedRuns", multipleRunErrors.size());
+            status.put("progress", currentRun > 0 ? (double) currentRun / totalRuns : 0.0);
+
+            if (!running && multiRunEndTime > 0) {
+                status.put("totalDurationMs", multiRunEndTime - multiRunStartTime);
+            }
+
+            if (!multipleRunErrors.isEmpty()) {
+                status.put("errors", new ArrayList<>(multipleRunErrors));
+            }
+        } else {
+            // Single run status
+            status.put("mode", "single");
+            status.put("currentIteration", currentIteration);
+            status.put("totalIterations", params.generations);
+            status.put("progress", running ? (double) currentIteration / params.generations : 1.0);
+        }
+
+        if (error != null) {
+            status.put("error", error);
+        }
+        if (!running && results != null) {
+            status.put("completed", true);
+        }
+
+        return status;
+    }
+
+    public Map<String, Object> getResults() {
+        if (totalRuns > 1) {
+            return getMultipleRunResults();
+        } else {
+            return results != null ? results : Map.of("error", "No results available");
+        }
+    }
+
+    private Map<String, Object> getMultipleRunResults() {
+        if (multipleRunResults.isEmpty()) {
+            return Map.of("error", "No successful runs completed");
+        }
+
+        DoubleSummaryStatistics fitnessMaxStats = new DoubleSummaryStatistics();
+        DoubleSummaryStatistics fitnessMinStats = new DoubleSummaryStatistics();
+        DoubleSummaryStatistics timeStats = new DoubleSummaryStatistics();
+        DoubleSummaryStatistics memoryStats = new DoubleSummaryStatistics();
+
+        for (RunResult result : multipleRunResults) {
+            Map<String, Object> data = result.results;
+            if (data.containsKey("fitnessMaximization")) {
+                fitnessMaxStats.accept((Double) data.get("fitnessMaximization"));
+            }
+            if (data.containsKey("fitnessMinimization")) {
+                fitnessMinStats.accept((Double) data.get("fitnessMinimization"));
+            }
+            if (data.containsKey("executionTimeMs")) {
+                timeStats.accept((Double) data.get("executionTimeMs"));
+            }
+            if (data.containsKey("memoryBytes")) {
+                memoryStats.accept((Double) data.get("memoryBytes"));
+            }
+        }
+
+        Map<String, Object> aggregated = new HashMap<>();
+        aggregated.put("totalRuns", totalRuns);
+        aggregated.put("successfulRuns", multipleRunResults.size());
+        aggregated.put("failedRuns", multipleRunErrors.size());
+        aggregated.put("totalDurationMs", multiRunEndTime - multiRunStartTime);
+
+        aggregated.put(
+                "fitnessMaximization",
+                Map.of(
+                        "best", fitnessMaxStats.getMax(),
+                        "worst", fitnessMaxStats.getMin(),
+                        "average", fitnessMaxStats.getAverage(),
+                        "standardDeviation",
+                                calculateStdDev(
+                                        multipleRunResults, "fitnessMaximization", fitnessMaxStats.getAverage())));
+
+        aggregated.put(
+                "fitnessMinimization",
+                Map.of(
+                        "best", fitnessMinStats.getMin(),
+                        "worst", fitnessMinStats.getMax(),
+                        "average", fitnessMinStats.getAverage(),
+                        "standardDeviation",
+                                calculateStdDev(
+                                        multipleRunResults, "fitnessMinimization", fitnessMinStats.getAverage())));
+
+        aggregated.put(
+                "executionTime",
+                Map.of(
+                        "average", timeStats.getAverage(),
+                        "min", timeStats.getMin(),
+                        "max", timeStats.getMax()));
+
+        aggregated.put(
+                "memory",
+                Map.of(
+                        "average", memoryStats.getAverage(),
+                        "min", memoryStats.getMin(),
+                        "max", memoryStats.getMax()));
+
+        List<Map<String, Object>> individualRuns = new ArrayList<>();
+        for (RunResult result : multipleRunResults) {
+            individualRuns.add(Map.of(
+                    "runNumber", result.runNumber,
+                    "fitnessMaximization", result.results.get("fitnessMaximization"),
+                    "fitnessMinimization", result.results.get("fitnessMinimization"),
+                    "executionTimeMs", result.results.get("executionTimeMs")));
+        }
+        aggregated.put("runs", individualRuns);
+
+        if (!multipleRunErrors.isEmpty()) {
+            aggregated.put("errors", new ArrayList<>(multipleRunErrors));
+        }
+
+        return aggregated;
+    }
+
+    private double calculateStdDev(List<RunResult> results, String key, double mean) {
+        double sumSquaredDiff = 0.0;
+        int count = 0;
+
+        for (RunResult result : results) {
+            if (result.results.containsKey(key)) {
+                double value = (Double) result.results.get(key);
+                double diff = value - mean;
+                sumSquaredDiff += diff * diff;
+                count++;
+            }
+        }
+
+        return count > 0 ? Math.sqrt(sumSquaredDiff / count) : 0.0;
+    }
+
+    public List<IterationResult> getIterationHistory() {
+        return new ArrayList<>(iterationHistory);
+    }
+
+    // ========== CONTROL ==========
+
+    public void stop() {
+        stopped = true;
+    }
+
+    public boolean isRunning() {
+        return running;
+    }
+
+    public void setError(String error) {
+        this.error = error;
+    }
+
+    public boolean isStopped() {
+        return stopped;
+    }
+
+    public String getError() {
+        return error;
+    }
+
+    private void checkStopped() throws InterruptedException {
+        if (stopped) {
+            throw new InterruptedException("Optimization stopped by user.");
+        }
+    }
+
+    // ========== HELPER CLASSES ==========
+
+    private static class RunResult {
+        final int runNumber;
+        final Map<String, Object> results;
+
+        RunResult(int runNumber, Map<String, Object> results) {
+            this.runNumber = runNumber;
+            this.results = results;
+        }
+    }
+
+    // ========== UTILITY METHODS (unchanged) ==========
 
     private static void writeAllocationsCsv(double[][] A, Data data, Path path) {
         try {
             Files.createDirectories(path.getParent());
             StringBuilder sb = new StringBuilder();
-            // Header
             sb.append("id,name");
             for (int c = 0; c < data.C; c++) sb.append(",").append(data.classNames[c]);
             sb.append(",total\n");
@@ -225,7 +496,6 @@ public class FARunner {
                 sb.append(",").append((long) Math.rint(total)).append("\n");
             }
             Files.writeString(path, sb.toString(), java.nio.charset.StandardCharsets.UTF_8);
-
         } catch (Exception e) {
             System.err.println("Failed to write allocations CSV: " + e.getMessage());
         }
@@ -235,13 +505,12 @@ public class FARunner {
         try {
             Files.createDirectories(path.getParent());
             StringBuilder sb = new StringBuilder();
-            // Header
             sb.append("class_id,class_name,from_id,from_name,to_id,to_name,amount\n");
             for (int c = 0; c < data.C; c++) {
                 for (int from = 0; from < data.Z; from++) {
                     for (int to = 0; to < data.Z; to++) {
                         double amt = flows[c][from][to];
-                        long units = Math.max(0L, Math.round(amt)); // integer persons
+                        long units = Math.max(0L, Math.round(amt));
                         if (units > 0L) {
                             sb.append(escapeCsv(data.classIds[c]))
                                     .append(",")
@@ -262,7 +531,6 @@ public class FARunner {
                 }
             }
             Files.writeString(path, sb.toString(), java.nio.charset.StandardCharsets.UTF_8);
-            // Removed per-file console print; grouped at end
         } catch (Exception e) {
             System.err.println("Failed to write flows CSV: " + e.getMessage());
         }
@@ -276,7 +544,6 @@ public class FARunner {
         return s;
     }
 
-    // Compute thesis fitness (without penalties) for reporting only
     private static double estimateFitness(double[][] A, Data data, double eps) {
         int Z = data.Z, C = data.C;
         double[] totalPerI = new double[Z];
@@ -289,12 +556,10 @@ public class FARunner {
         }
         double denomP = Math.max(P, eps);
 
-        // Obj1 coverage
         int Cz = 0;
         for (int i = 0; i < Z; i++) if (totalPerI[i] > 0) Cz++;
         double obj1 = (double) Cz / (double) Z;
 
-        // Obj2 prioritization
         double obj2sum = 0.0;
         for (int i = 0; i < Z; i++) {
             double logTerm = Math.log(1.0 + Math.max(0.0, data.r[i]));
@@ -302,7 +567,6 @@ public class FARunner {
         }
         double obj2 = obj2sum / denomP;
 
-        // Obj3 imbalance
         double mean = 0.0;
         for (double v : totalPerI) mean += v;
         mean /= Math.max(1, Z);
@@ -314,7 +578,6 @@ public class FARunner {
         double std = Math.sqrt(var / Math.max(1, Z));
         double obj3 = std / (mean + eps);
 
-        // Obj4 demand satisfaction
         double obj4sum = 0.0;
         for (int i = 0; i < Z; i++) {
             double Si = Math.max(0.0, data.r[i]) * Math.max(0.0, data.f[i]);
@@ -342,62 +605,11 @@ public class FARunner {
         return penalty;
     }
 
-    public void stop() {
-        stopped = true;
-    }
-
-    public boolean isRunning() {
-        return running;
-    }
-
-    public void setError(String error) {
-        this.error = error;
-    }
-
-    public boolean isStopped() {
-        return stopped;
-    }
-
-    public String getError() {
-        return error;
-    }
-
-    public Map<String, Object> getStatus() {
-        Map<String, Object> status = new HashMap<>();
-        status.put("running", running);
-        status.put("currentIteration", currentIteration);
-        status.put("totalIterations", params.generations);
-        status.put("progress", running ? (double) currentIteration / params.generations : 1.0);
-        if (error != null) {
-            status.put("error", error);
-        }
-        if (!running && results != null) {
-            status.put("completed", true);
-        }
-        return status;
-    }
-
-    public Map<String, Object> getResults() {
-        return results != null ? results : Map.of("error", "No results available");
-    }
-
-    public List<IterationResult> getIterationHistory() {
-        return new ArrayList<>(iterationHistory);
-    }
-
-    private void checkStopped() throws InterruptedException {
-        if (stopped) {
-            throw new InterruptedException("Optimization stopped by user.");
-        }
-    }
-
-    // Utils
     private double roundToPrecision(double value) {
         double scale = Math.pow(10, precision);
         return Math.round(value * scale) / scale;
     }
 
-    // Banner Builder Width
     private static final int BANNER_WIDTH = 64;
 
     private static String banner(String label) {
