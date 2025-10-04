@@ -6,12 +6,12 @@ import java.util.Map;
 public class AllocationResult {
     public String id;
     public String name;
-    public Map<String, Long> allocations; // class_name -> amount
+    public Map<String, Long> personnel; // class_name -> amount
     public long total;
 
     public AllocationResult(String id, String name) {
         this.id = id;
         this.name = name;
-        this.allocations = new LinkedHashMap<>();
+        this.personnel = new LinkedHashMap<>();
     }
 }
