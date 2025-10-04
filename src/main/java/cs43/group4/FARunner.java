@@ -15,6 +15,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.lang.management.ManagementFactory;
+import com.sun.management.ThreadMXBean;
 
 public class FARunner {
     private final AlgorithmParams params;
@@ -125,8 +127,9 @@ public class FARunner {
             });
 
             // Before Optimization
-            Runtime runtime = Runtime.getRuntime();
-            long memoryBefore = runtime.totalMemory() - runtime.freeMemory();
+            ThreadMXBean threadBean = (ThreadMXBean) ManagementFactory.getThreadMXBean();
+            long threadId = Thread.currentThread().getId();
+            long allocatedBefore = threadBean.getThreadAllocatedBytes(threadId);
             long startTime = System.nanoTime();
 
             fa.optimize();
@@ -134,7 +137,7 @@ public class FARunner {
 
             /// After Optimization
             long endTime = System.nanoTime();
-            long memoryAfter = runtime.totalMemory() - runtime.freeMemory();
+            long allocatedAfter = threadBean.getThreadAllocatedBytes(threadId);
 
             double[] x = fa.getBestSolution();
             double[][] A = new double[Z][C];
@@ -153,14 +156,13 @@ public class FARunner {
 
             double fitness = estimateFitness(A, data, 1e-6);
             double minimizedObjective = -(fitness) + estimateSupplyPenalty(A, data);
+
             bestFitness = roundToPrecision(fitness);
             executionTime = roundToPrecision((endTime - startTime) / 1_000_000.0); // Convert ns to ms
-            memoryUsage = memoryAfter - memoryBefore; // in bytes
-            // memoryUsage = roundToPrecision((memoryAfter - memoryBefore) / (1024.0 * 1024.0));
-            // Convert bytes to MB
+            memoryUsage = allocatedAfter - allocatedBefore; // bytes
 
             Log.info("Execution Time: " + executionTime + " ms");
-            Log.info("Memory Usage: " + memoryUsage + " bytes");
+            Log.info("Memory Allocated: " + memoryUsage + " bytes (" + String.format("%.2f", memoryUsage / (1024.0 * 1024.0)) + " MB)");
             Log.info("Best Fitness Score (Maximization) = " + bestFitness);
             Log.info("Best Fitness Score (Minimization) = " + minimizedObjective);
 
