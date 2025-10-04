@@ -1,6 +1,6 @@
 package cs43.group4.controllers;
 
-import cs43.group4.AlgorithmParams;
+import cs43.group4.FAParams;
 import cs43.group4.FARunner;
 import cs43.group4.utils.Log;
 import io.javalin.http.Context;
@@ -77,7 +77,7 @@ public class FAController {
         }
 
         try {
-            AlgorithmParams params = parseParams(ctx);
+            FAParams params = parseParams(ctx);
             Log.debug("Single run parameters: " + params.toString());
 
             runner = new FARunner(params);
@@ -109,7 +109,7 @@ public class FAController {
         }
 
         try {
-            AlgorithmParams params = parseParams(ctx);
+            FAParams params = parseParams(ctx);
 
             // Get number of runs from query parameter
             String runsParam = ctx.queryParam("runs");
@@ -155,11 +155,11 @@ public class FAController {
 
     // ========== HELPER METHODS ==========
 
-    private AlgorithmParams parseParams(Context ctx) {
+    private FAParams parseParams(Context ctx) {
         if (ctx.body().isBlank()) {
-            return new AlgorithmParams(); // use defaults
+            return new FAParams(); // use defaults
         } else {
-            AlgorithmParams params = ctx.bodyAsClass(AlgorithmParams.class);
+            FAParams params = ctx.bodyAsClass(FAParams.class);
             params.validate();
             return params;
         }

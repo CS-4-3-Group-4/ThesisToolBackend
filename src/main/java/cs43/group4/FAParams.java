@@ -1,6 +1,6 @@
 package cs43.group4;
 
-public class AlgorithmParams {
+public class FAParams {
     public int generations = 300;
     public int numFireflies = 50;
     public double alpha0 = 0.6;

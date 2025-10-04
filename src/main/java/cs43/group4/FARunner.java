@@ -16,7 +16,7 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class FARunner {
-    private final AlgorithmParams params;
+    private final FAParams params;
     private volatile boolean running = false;
     private volatile boolean stopped = false;
     private volatile String error = null;
@@ -39,7 +39,7 @@ public class FARunner {
 
     private final int precision = 12;
 
-    public FARunner(AlgorithmParams params) {
+    public FARunner(FAParams params) {
         this.params = params;
     }
 
