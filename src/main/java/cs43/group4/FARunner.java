@@ -175,7 +175,7 @@ public class FARunner {
                 lower,
                 upper,
                 params.gamma,
-                params.beta,
+                params.beta0,
                 params.alpha0,
                 params.alphaFinal,
                 params.generations);

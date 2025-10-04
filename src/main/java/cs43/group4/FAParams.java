@@ -5,7 +5,7 @@ public class FAParams {
     public int numFireflies = 50;
     public double alpha0 = 0.6;
     public double alphaFinal = 0.05;
-    public double beta = 1.0;
+    public double beta0 = 1.0;
     public double gamma = 0.6;
 
     /**
@@ -21,8 +21,8 @@ public class FAParams {
         if (alpha0 > 0.99) throw new IllegalArgumentException("alpha0 too large: " + alpha0);
         if (alphaFinal < 0.01) throw new IllegalArgumentException("Invalid alphaFinal: " + alphaFinal);
         if (alphaFinal > 0.99) throw new IllegalArgumentException("alphaFinal too large: " + alphaFinal);
-        if (beta < 0.01) throw new IllegalArgumentException("Invalid beta: " + beta);
-        if (beta > 100) throw new IllegalArgumentException("beta too large: " + beta);
+        if (beta0 < 0.01) throw new IllegalArgumentException("Invalid beta0: " + beta0);
+        if (beta0 > 100) throw new IllegalArgumentException("beta0 too large: " + beta0);
         if (gamma < 0.01) throw new IllegalArgumentException("Invalid gamma: " + gamma);
         if (gamma > 100) throw new IllegalArgumentException("gamma too large: " + gamma);
     }
@@ -33,8 +33,8 @@ public class FAParams {
                 + generations + ",\n" + "  numFireflies = "
                 + numFireflies + ",\n" + "  alpha0 = "
                 + alpha0 + ",\n" + "  alphaFinal = "
-                + alphaFinal + ",\n" + "  beta = "
-                + beta + ",\n" + "  gamma = "
+                + alphaFinal + ",\n" + "  beta0 = "
+                + beta0 + ",\n" + "  gamma = "
                 + gamma + "\n" + "}";
     }
 }
