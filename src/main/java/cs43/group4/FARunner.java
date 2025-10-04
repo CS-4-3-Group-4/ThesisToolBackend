@@ -238,6 +238,7 @@ public class FARunner {
 
         double fitness = estimateFitness(A, data, 1e-6);
         double minimizedObjective = -(fitness) + estimateSupplyPenalty(A, data);
+        minimizedObjective = roundToPrecision(minimizedObjective);
 
         bestFitness = roundToPrecision(fitness);
         executionTime = roundToPrecision((endTime - startTime) / 1_000_000.0);
