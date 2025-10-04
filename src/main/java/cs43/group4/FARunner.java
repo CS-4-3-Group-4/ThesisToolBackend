@@ -7,6 +7,8 @@ import cs43.group4.core.FireflyAlgorithm;
 import cs43.group4.core.FlowAllocator;
 import cs43.group4.core.ObjectiveFunction;
 import cs43.group4.core.ThesisObjective;
+import cs43.group4.utils.AllocationResult;
+import cs43.group4.utils.FlowResult;
 import cs43.group4.utils.IterationResult;
 import cs43.group4.utils.Log;
 import java.lang.management.ManagementFactory;
@@ -23,6 +25,8 @@ public class FARunner {
 
     // Single run state
     private final List<IterationResult> iterationHistory = new CopyOnWriteArrayList<>();
+    private final List<AllocationResult> allocations = new ArrayList<>();
+    private final List<FlowResult> flows = new ArrayList<>();
     private Map<String, Object> results = null;
     private int currentIteration = 0;
     private double bestFitness;
@@ -47,6 +51,9 @@ public class FARunner {
 
     public void run() throws Exception {
         running = true;
+        iterationHistory.clear();
+        allocations.clear();
+        flows.clear();
         try {
             executeSingleRun();
         } catch (InterruptedException e) {
@@ -252,35 +259,35 @@ public class FARunner {
             Log.info("Best Fitness Score (Maximization) = " + bestFitness);
             Log.info("Best Fitness Score (Minimization) = " + minimizedObjective);
 
-            Path flowsPath = Path.of("out", "flows.csv");
-            Path allocsPath = Path.of("out", "allocations.csv");
-            Path logPath = Path.of("out", "iterations.log");
-
             var flow = (data.lat != null && data.lon != null)
                     ? FlowAllocator.allocate(A, currentPerClass, data.lat, data.lon)
                     : FlowAllocator.allocate(A, currentPerClass);
-            writeFlowsCsv(flow.flows, data, flowsPath);
-            writeAllocationsCsv(A, data, allocsPath);
+
+            allocations.addAll(createAllocations(A, data));
+            flows.addAll(createFlows(flow.flows, data));
+
+            // Optional: Still write CSVs if we want
+            // writeFlowsCsv(flow.flows, data, Path.of("out", "flows.csv"));
+            // writeAllocationsCsv(A, data, Path.of("out", "allocations.csv"));
 
             results = Map.of(
-                    "fitnessMaximization", fitness,
+                    "fitnessMaximization", bestFitness,
                     "fitnessMinimization", minimizedObjective,
                     "totalIterations", params.generations,
                     "executionTimeMs", executionTime,
-                    "memoryBytes", memoryUsage,
-                    "flowsFile", flowsPath.toString(),
-                    "allocationsFile", allocsPath.toString());
+                    "memoryBytes", memoryUsage
+                    );
 
-            System.out.println(banner("Output Files"));
-            System.out.println("Wrote allocations CSV to: " + allocsPath.toString());
-            System.out.println("Wrote flows CSV to: " + flowsPath.toString());
-            System.out.println("Wrote iteration log to: " + logPath.toString());
-            System.out.println(line());
-            System.out.println();
+            // System.out.println(banner("Output Files"));
+            // System.out.println("Wrote allocations CSV to: " + allocsPath.toString());
+            // System.out.println("Wrote flows CSV to: " + flowsPath.toString());
+            // System.out.println("Wrote iteration log to: " + logPath.toString());
+            // System.out.println(line());
+            // System.out.println();
         } else {
             // For multiple runs, just store minimal results
             results = Map.of(
-                    "fitnessMaximization", fitness,
+                    "fitnessMaximization", bestFitness,
                     "fitnessMinimization", minimizedObjective,
                     "executionTimeMs", executionTime,
                     "memoryBytes", memoryUsage);
@@ -436,6 +443,14 @@ public class FARunner {
         return count > 0 ? Math.sqrt(sumSquaredDiff / count) : 0.0;
     }
 
+    public List<AllocationResult> getAllocations() {
+        return new ArrayList<>(allocations);
+    }
+
+    public List<FlowResult> getFlows() {
+        return new ArrayList<>(flows);
+    }
+
     public List<IterationResult> getIterationHistory() {
         return new ArrayList<>(iterationHistory);
     }
@@ -478,6 +493,51 @@ public class FARunner {
             this.runNumber = runNumber;
             this.results = results;
         }
+    }
+
+    private static List<AllocationResult> createAllocations(double[][] A, Data data) {
+        List<AllocationResult> allocations = new ArrayList<>();
+
+        for (int i = 0; i < data.Z; i++) {
+            AllocationResult allocation = new AllocationResult(data.barangayIds[i], data.barangayNames[i]);
+
+            double total = 0.0;
+            for (int c = 0; c < data.C; c++) {
+                long amount = (long) Math.rint(A[i][c]);
+                allocation.allocations.put(data.classNames[c], amount);
+                total += A[i][c];
+            }
+            allocation.total = (long) Math.rint(total);
+            allocations.add(allocation);
+        }
+
+        return allocations;
+    }
+
+    private static List<FlowResult> createFlows(double[][][] flows, Data data) {
+        List<FlowResult> flowResults = new ArrayList<>();
+
+        for (int c = 0; c < data.C; c++) {
+            for (int from = 0; from < data.Z; from++) {
+                for (int to = 0; to < data.Z; to++) {
+                    double amt = flows[c][from][to];
+                    long units = Math.max(0L, Math.round(amt));
+
+                    if (units > 0L) {
+                        flowResults.add(new FlowResult(
+                                data.classIds[c],
+                                data.classNames[c],
+                                data.barangayIds[from],
+                                data.barangayNames[from],
+                                data.barangayIds[to],
+                                data.barangayNames[to],
+                                units));
+                    }
+                }
+            }
+        }
+
+        return flowResults;
     }
 
     // ========== UTILITY METHODS (unchanged) ==========

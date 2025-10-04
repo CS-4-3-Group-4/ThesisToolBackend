@@ -42,9 +42,10 @@ public class Main {
         Log.info("    Multiple Runs:");
         Log.info("      POST /fa/multiple/run?runs=N           - Start N runs (2-100)");
         Log.info("");
-        Log.info("    Downloads:");
-        Log.info("      GET  /fa/download/flows                - Download flows CSV");
-        Log.info("      GET  /fa/download/allocations          - Download allocations CSV");
+        Log.info("    Data:");
+        Log.info("      GET  /fa/allocations                   - Get allocation details");
+        Log.info("      GET  /fa/flows                         - Get flow details");
+        Log.info("");
         Log.info("");
         Log.info("  EFA Algorithm:");
         Log.info("    Control:");
@@ -66,5 +67,9 @@ public class Main {
 
         // Multiple runs
         app.post("/fa/multiple/run", faController::postMultipleRun);
+
+        // Data endpoints (single run only)
+        app.get("/fa/allocations", faController::getAllocations);
+        app.get("/fa/flows", faController::getFlows);
     }
 }

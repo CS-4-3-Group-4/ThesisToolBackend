@@ -153,6 +153,44 @@ public class FAController {
         }
     }
 
+    public void getAllocations(Context ctx) {
+        Log.info("Allocations requested");
+
+        if (runner == null) {
+            ctx.status(404).json(Map.of("error", "No algorithm has been run"));
+        } else if (runner.isRunning()) {
+            ctx.status(400).json(Map.of("error", "Algorithm still running"));
+        } else {
+            Map<String, Object> status = runner.getStatus();
+            if ("multiple".equals(status.get("mode"))) {
+                ctx.json(Map.of(
+                        "error", "Allocations not available for multiple runs",
+                        "suggestion", "Only available for single runs"));
+            } else {
+                ctx.json(Map.of("allocations", runner.getAllocations()));
+            }
+        }
+    }
+
+    public void getFlows(Context ctx) {
+        Log.info("Flows requested");
+
+        if (runner == null) {
+            ctx.status(404).json(Map.of("error", "No algorithm has been run"));
+        } else if (runner.isRunning()) {
+            ctx.status(400).json(Map.of("error", "Algorithm still running"));
+        } else {
+            Map<String, Object> status = runner.getStatus();
+            if ("multiple".equals(status.get("mode"))) {
+                ctx.json(Map.of(
+                        "error", "Flows not available for multiple runs",
+                        "suggestion", "Only available for single runs"));
+            } else {
+                ctx.json(Map.of("flows", runner.getFlows()));
+            }
+        }
+    }
+
     // ========== HELPER METHODS ==========
 
     private FAParams parseParams(Context ctx) {
