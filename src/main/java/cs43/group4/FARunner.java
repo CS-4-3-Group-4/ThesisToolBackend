@@ -275,8 +275,7 @@ public class FARunner {
                     "fitnessMinimization", minimizedObjective,
                     "totalIterations", params.generations,
                     "executionTimeMs", executionTime,
-                    "memoryBytes", memoryUsage
-                    );
+                    "memoryBytes", memoryUsage);
 
             // System.out.println(banner("Output Files"));
             // System.out.println("Wrote allocations CSV to: " + allocsPath.toString());
@@ -381,20 +380,14 @@ public class FARunner {
                 Map.of(
                         "best", fitnessMaxStats.getMax(),
                         "worst", fitnessMaxStats.getMin(),
-                        "average", fitnessMaxStats.getAverage(),
-                        "standardDeviation",
-                                calculateStdDev(
-                                        multipleRunResults, "fitnessMaximization", fitnessMaxStats.getAverage())));
+                        "average", fitnessMaxStats.getAverage()));
 
         aggregated.put(
                 "fitnessMinimization",
                 Map.of(
                         "best", fitnessMinStats.getMin(),
                         "worst", fitnessMinStats.getMax(),
-                        "average", fitnessMinStats.getAverage(),
-                        "standardDeviation",
-                                calculateStdDev(
-                                        multipleRunResults, "fitnessMinimization", fitnessMinStats.getAverage())));
+                        "average", fitnessMinStats.getAverage()));
 
         aggregated.put(
                 "executionTime",
@@ -416,7 +409,8 @@ public class FARunner {
                     "runNumber", result.runNumber,
                     "fitnessMaximization", result.results.get("fitnessMaximization"),
                     "fitnessMinimization", result.results.get("fitnessMinimization"),
-                    "executionTimeMs", result.results.get("executionTimeMs")));
+                    "executionTimeMs", result.results.get("executionTimeMs"),
+                    "memoryBytes", result.results.get("memoryBytes")));
         }
         aggregated.put("runs", individualRuns);
 
@@ -504,7 +498,7 @@ public class FARunner {
             double total = 0.0;
             for (int c = 0; c < data.C; c++) {
                 long amount = (long) Math.rint(A[i][c]);
-                allocation.allocations.put(data.classNames[c], amount);
+                allocation.personnel.put(data.classNames[c], amount);
                 total += A[i][c];
             }
             allocation.total = (long) Math.rint(total);
