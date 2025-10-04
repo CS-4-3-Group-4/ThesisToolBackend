@@ -300,7 +300,9 @@ public class FARunner {
             status.put("totalRuns", totalRuns);
             status.put("completedRuns", multipleRunResults.size());
             status.put("failedRuns", multipleRunErrors.size());
-            status.put("progress", currentRun > 0 ? (double) currentRun / totalRuns : 0.0);
+            double runProgress = currentIteration / (double) params.generations;
+            double overallProgress = (currentRun - 1 + runProgress) / totalRuns;
+            status.put("progress", overallProgress);
 
             if (!running && multiRunEndTime > 0) {
                 status.put("totalDurationMs", multiRunEndTime - multiRunStartTime);
