@@ -34,8 +34,8 @@ Make sure you have the following installed:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/Viadsss/EFA-FA-Backend.git
-cd EFA-FA-Backend
+git clone https://github.com/CS-4-3-Group-4/ThesisToolBackend.git
+cd ThesisToolBackend
 ```
 
 ---
