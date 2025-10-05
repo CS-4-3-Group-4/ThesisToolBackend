@@ -1,4 +1,3 @@
-````markdown
 # Thesis Tool Backend
 
 This repository contains the backend implementation of the **Emergency Personnel Allocation system** that will be use in our thesis project. The backend exposes an API for running simulations of **Firefly Algorithm (FA)** and **Extended Firefly Algorithm (EFA)** to optimize personnel deployment during flood scenarios. The frontend application can call this API to retrieve metrics, results, and simulation data.
@@ -38,7 +37,6 @@ Make sure you have the following installed:
 git clone https://github.com/Viadsss/EFA-FA-Backend.git
 cd EFA-FA-Backend
 ```
-````
 
 ---
 
@@ -114,6 +112,11 @@ mvn spotless:apply
 **💡 Best Practice:**
 Run `mvn spotless:apply` every time you make changes or before committing. This ensures all code is properly formatted, reduces merge conflicts, and keeps the repository clean.
 
-```
+---
 
-```
+### 5. Using the API with Bruno (Optional)
+
+You can test the API using [Bruno](https://www.usebruno.com/).
+
+-   Download the **Bruno app** if you don’t have it installed.
+-   The collection file is already included in this repository — open it in Bruno to start testing the endpoints.
