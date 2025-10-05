@@ -3,23 +3,22 @@ package cs43.group4;
 import com.sun.management.ThreadMXBean;
 import cs43.group4.core.DataLoader;
 import cs43.group4.core.DataLoader.Data;
-import cs43.group4.core.FireflyAlgorithm;
+import cs43.group4.core.ExtendedFireflyAlgorithm;
 import cs43.group4.core.FlowAllocator;
 import cs43.group4.core.ObjectiveFunction;
 import cs43.group4.core.ThesisObjective;
-import cs43.group4.parameters.FAParams;
+import cs43.group4.parameters.EFAParams;
 import cs43.group4.utils.AllocationResult;
 import cs43.group4.utils.FlowResult;
 import cs43.group4.utils.IterationResult;
 import cs43.group4.utils.Log;
 import java.lang.management.ManagementFactory;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class FARunner {
-    private final FAParams params;
+public class EFARunner {
+    private final EFAParams params;
     private volatile boolean running = false;
     private volatile boolean stopped = false;
     private volatile String error = null;
@@ -44,7 +43,7 @@ public class FARunner {
 
     private final int precision = 12;
 
-    public FARunner(FAParams params) {
+    public EFARunner(EFAParams params) {
         this.params = params;
     }
 
@@ -61,8 +60,8 @@ public class FARunner {
             this.error = "Stopped by user.";
             System.err.println("Stopped by user.");
         } catch (Exception e) {
-            this.error = "FARunner error: " + e.getMessage();
-            System.err.println("FARunner error: " + e.getMessage());
+            this.error = "ThesisRunner error: " + e.getMessage();
+            System.err.println("ThesisRunner error: " + e.getMessage());
             throw e;
         } finally {
             running = false;
@@ -177,18 +176,23 @@ public class FARunner {
                 data.lon,
                 0.01);
 
-        FireflyAlgorithm fa = new FireflyAlgorithm(
+        ExtendedFireflyAlgorithm efa = new ExtendedFireflyAlgorithm(
                 thesisObj,
+                data,
                 params.numFireflies,
                 lower,
                 upper,
                 params.gamma,
                 params.beta0,
+                params.betaMin,
                 params.alpha0,
                 params.alphaFinal,
                 params.generations);
 
-        fa.setProgressListener((generation, bestX) -> {
+        // Tune gamma on the normalized scale
+        efa.tuneGammaByInfluenceRadius(1.0, 0.6);
+
+        efa.setProgressListener((generation, bestX, reinitializedCount) -> {
             if (stopped) return;
 
             currentIteration = generation;
@@ -223,13 +227,13 @@ public class FARunner {
         long allocatedBefore = threadBean.getThreadAllocatedBytes(threadId);
         long startTime = System.nanoTime();
 
-        fa.optimize();
+        efa.optimize();
         checkStopped();
 
         long endTime = System.nanoTime();
         long allocatedAfter = threadBean.getThreadAllocatedBytes(threadId);
 
-        double[] x = fa.getBestSolution();
+        double[] x = efa.getBestSolution();
         double[][] A = new double[Z][C];
         int k = 0;
         for (int i = 0; i < Z; i++) for (int c = 0; c < C; c++, k++) A[i][c] = Math.max(0.0, x[k]);
@@ -267,23 +271,12 @@ public class FARunner {
             allocations.addAll(createAllocations(A, data));
             flows.addAll(createFlows(flow.flows, data));
 
-            // Optional: Still write CSVs if we want
-            // writeFlowsCsv(flow.flows, data, Path.of("out", "flows.csv"));
-            // writeAllocationsCsv(A, data, Path.of("out", "allocations.csv"));
-
             results = Map.of(
                     "fitnessMaximization", bestFitness,
                     "fitnessMinimization", minimizedObjective,
                     "totalIterations", params.generations,
                     "executionTimeMs", executionTime,
                     "memoryBytes", memoryUsage);
-
-            // System.out.println(banner("Output Files"));
-            // System.out.println("Wrote allocations CSV to: " + allocsPath.toString());
-            // System.out.println("Wrote flows CSV to: " + flowsPath.toString());
-            // System.out.println("Wrote iteration log to: " + logPath.toString());
-            // System.out.println(line());
-            // System.out.println();
         } else {
             // For multiple runs, just store minimal results
             results = Map.of(
@@ -422,22 +415,6 @@ public class FARunner {
         return aggregated;
     }
 
-    private double calculateStdDev(List<RunResult> results, String key, double mean) {
-        double sumSquaredDiff = 0.0;
-        int count = 0;
-
-        for (RunResult result : results) {
-            if (result.results.containsKey(key)) {
-                double value = (Double) result.results.get(key);
-                double diff = value - mean;
-                sumSquaredDiff += diff * diff;
-                count++;
-            }
-        }
-
-        return count > 0 ? Math.sqrt(sumSquaredDiff / count) : 0.0;
-    }
-
     public List<AllocationResult> getAllocations() {
         return new ArrayList<>(allocations);
     }
@@ -535,72 +512,7 @@ public class FARunner {
         return flowResults;
     }
 
-    // ========== UTILITY METHODS (unchanged) ==========
-
-    private static void writeAllocationsCsv(double[][] A, Data data, Path path) {
-        try {
-            Files.createDirectories(path.getParent());
-            StringBuilder sb = new StringBuilder();
-            sb.append("id,name");
-            for (int c = 0; c < data.C; c++) sb.append(",").append(data.classNames[c]);
-            sb.append(",total\n");
-            for (int i = 0; i < data.Z; i++) {
-                double total = 0.0;
-                sb.append(escapeCsv(data.barangayIds[i])).append(",").append(escapeCsv(data.barangayNames[i]));
-                for (int c = 0; c < data.C; c++) {
-                    sb.append(",").append((long) Math.rint(A[i][c]));
-                    total += A[i][c];
-                }
-                sb.append(",").append((long) Math.rint(total)).append("\n");
-            }
-            Files.writeString(path, sb.toString(), java.nio.charset.StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            System.err.println("Failed to write allocations CSV: " + e.getMessage());
-        }
-    }
-
-    private static void writeFlowsCsv(double[][][] flows, Data data, Path path) {
-        try {
-            Files.createDirectories(path.getParent());
-            StringBuilder sb = new StringBuilder();
-            sb.append("class_id,class_name,from_id,from_name,to_id,to_name,amount\n");
-            for (int c = 0; c < data.C; c++) {
-                for (int from = 0; from < data.Z; from++) {
-                    for (int to = 0; to < data.Z; to++) {
-                        double amt = flows[c][from][to];
-                        long units = Math.max(0L, Math.round(amt));
-                        if (units > 0L) {
-                            sb.append(escapeCsv(data.classIds[c]))
-                                    .append(",")
-                                    .append(escapeCsv(data.classNames[c]))
-                                    .append(",")
-                                    .append(escapeCsv(data.barangayIds[from]))
-                                    .append(",")
-                                    .append(escapeCsv(data.barangayNames[from]))
-                                    .append(",")
-                                    .append(escapeCsv(data.barangayIds[to]))
-                                    .append(",")
-                                    .append(escapeCsv(data.barangayNames[to]))
-                                    .append(",")
-                                    .append(units)
-                                    .append("\n");
-                        }
-                    }
-                }
-            }
-            Files.writeString(path, sb.toString(), java.nio.charset.StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            System.err.println("Failed to write flows CSV: " + e.getMessage());
-        }
-    }
-
-    private static String escapeCsv(String s) {
-        if (s == null) return "";
-        if (s.contains(",") || s.contains("\"")) {
-            return '"' + s.replace("\"", "\"\"") + '"';
-        }
-        return s;
-    }
+    // ========== UTILITY METHODS ==========
 
     private static double estimateFitness(double[][] A, Data data, double eps) {
         int Z = data.Z, C = data.C;
@@ -666,19 +578,5 @@ public class FARunner {
     private double roundToPrecision(double value) {
         double scale = Math.pow(10, precision);
         return Math.round(value * scale) / scale;
-    }
-
-    private static final int BANNER_WIDTH = 64;
-
-    private static String banner(String label) {
-        String text = " " + label.trim() + " ";
-        int pad = Math.max(0, BANNER_WIDTH - text.length());
-        int left = pad / 2;
-        int right = pad - left;
-        return "=".repeat(left) + text + "=".repeat(right);
-    }
-
-    private static String line() {
-        return "=".repeat(BANNER_WIDTH);
     }
 }
