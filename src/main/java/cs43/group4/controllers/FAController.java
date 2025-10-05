@@ -2,6 +2,7 @@ package cs43.group4.controllers;
 
 import cs43.group4.FAParams;
 import cs43.group4.FARunner;
+import cs43.group4.parameters.FAParams;
 import cs43.group4.utils.Log;
 import io.javalin.http.Context;
 import java.util.Map;

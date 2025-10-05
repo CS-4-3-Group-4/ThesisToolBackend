@@ -1,4 +1,4 @@
-package cs43.group4;
+package cs43.group4.parameters;
 
 public class FAParams {
     public int generations = 300;
