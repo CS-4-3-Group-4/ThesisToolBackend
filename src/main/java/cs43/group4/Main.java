@@ -1,7 +1,7 @@
 package cs43.group4;
 
-import cs43.group4.controllers.FAController;
 import cs43.group4.controllers.EFAController;
+import cs43.group4.controllers.FAController;
 import cs43.group4.utils.Log;
 import io.javalin.Javalin;
 import java.util.Map;
