@@ -24,8 +24,8 @@ public class EFAParams {
         if (alphaFinal > 1) throw new IllegalArgumentException("alphaFinal too large: " + alphaFinal);
         if (beta0 < 0.1) throw new IllegalArgumentException("Invalid beta0: " + beta0);
         if (beta0 > 10) throw new IllegalArgumentException("beta0 too large: " + beta0);
-        if (betaMin < 0.0) throw new IllegalArgumentException("Invalid betaMin: " + betaMin);
-        if (betaMin > beta0) throw new IllegalArgumentException("betaMin must be <= beta0");
+        if (betaMin < 0.1) throw new IllegalArgumentException("Invalid betaMin: " + betaMin);
+        if (betaMin > 10) throw new IllegalArgumentException("betaMin too large: " + betaMin);
         if (gamma < 0.1) throw new IllegalArgumentException("Invalid gamma: " + gamma);
         if (gamma > 10) throw new IllegalArgumentException("gamma too large: " + gamma);
     }
