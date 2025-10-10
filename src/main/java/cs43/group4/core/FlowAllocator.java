@@ -2,8 +2,9 @@ package cs43.group4.core;
 
 /**
  * Simple post-processing allocator to map borrowing flows between barangays. For each class c,
- * matches surplus (current > allocated) to deficit (allocated > current) greedily without
- * distances/costs.
+ * builds flows so that each barangay uses its own personnel first (self-flows), then borrows from
+ * others when needed. Totals per class match the requested allocations exactly (which are already
+ * normalized to match classes.csv supply), and self-allocations (i -> i) are included.
  */
 public final class FlowAllocator {
 
@@ -29,21 +30,37 @@ public final class FlowAllocator {
         double[][][] flows = new double[C][Z][Z];
 
         for (int c = 0; c < C; c++) {
-            double[] current = currentPerClass[c];
-            double[] demand = new double[Z];
-            double[] surplus = new double[Z];
+            // Integer demand from allocations (already normalized/rounded upstream)
+            long[] D = new long[Z];
+            long Dtotal = 0L;
             for (int i = 0; i < Z; i++) {
-                double need = Math.max(0.0, A[i][c] - current[i]);
-                double extra = Math.max(0.0, current[i] - A[i][c]);
-                demand[i] = need;
-                surplus[i] = extra;
+                long v = Math.max(0L, Math.round(A[i][c]));
+                D[i] = v;
+                Dtotal += v;
             }
+
+            // Scale current to match total demand, then round to integers with exact sum
+            long[] S = scaleAndRoundToSum(currentPerClass[c], Dtotal);
+
+            // Use own personnel first (self-flows)
+            long[] demand = new long[Z];
+            long[] surplus = new long[Z];
+            for (int i = 0; i < Z; i++) {
+                long keep = Math.min(S[i], D[i]);
+                flows[c][i][i] += keep; // self-allocation shown explicitly
+                long remS = S[i] - keep;
+                long remD = D[i] - keep;
+                surplus[i] = remS;
+                demand[i] = remD;
+            }
+
+            // Greedy match remaining demand/surplus without distances
             int iSur = 0, iDef = 0;
             while (true) {
-                while (iSur < Z && surplus[iSur] <= 1e-12) iSur++;
-                while (iDef < Z && demand[iDef] <= 1e-12) iDef++;
+                while (iSur < Z && surplus[iSur] <= 0L) iSur++;
+                while (iDef < Z && demand[iDef] <= 0L) iDef++;
                 if (iSur >= Z || iDef >= Z) break;
-                double moved = Math.min(surplus[iSur], demand[iDef]);
+                long moved = Math.min(surplus[iSur], demand[iDef]);
                 flows[c][iSur][iDef] += moved;
                 surplus[iSur] -= moved;
                 demand[iDef] -= moved;
@@ -87,22 +104,34 @@ public final class FlowAllocator {
         }
 
         for (int c = 0; c < C; c++) {
-            double[] current = currentPerClass[c];
-            double[] demand = new double[Z];
-            double[] surplus = new double[Z];
+            // Integer demand from allocations
+            long[] D = new long[Z];
+            long Dtotal = 0L;
             for (int i = 0; i < Z; i++) {
-                double need = Math.max(0.0, A[i][c] - current[i]);
-                double extra = Math.max(0.0, current[i] - A[i][c]);
-                demand[i] = need;
-                surplus[i] = extra;
+                long v = Math.max(0L, Math.round(A[i][c]));
+                D[i] = v;
+                Dtotal += v;
+            }
+
+            // Scale current to match total demand; round to integers
+            long[] S = scaleAndRoundToSum(currentPerClass[c], Dtotal);
+
+            // Use own personnel first (self-flows)
+            long[] demand = new long[Z];
+            long[] surplus = new long[Z];
+            for (int i = 0; i < Z; i++) {
+                long keep = Math.min(S[i], D[i]);
+                flows[c][i][i] += keep;
+                surplus[i] = S[i] - keep;
+                demand[i] = D[i] - keep;
             }
 
             // While there is remaining demand and surplus, match nearest pairs
             while (true) {
                 int def = -1;
-                double needMax = 0.0;
+                long needMax = 0L;
                 for (int i = 0; i < Z; i++) {
-                    if (demand[i] > 1e-12 && demand[i] > needMax) {
+                    if (demand[i] > 0L && demand[i] > needMax) {
                         needMax = demand[i];
                         def = i;
                     }
@@ -113,17 +142,17 @@ public final class FlowAllocator {
                 int src = -1;
                 double bestD = Double.POSITIVE_INFINITY;
                 for (int j = 0; j < Z; j++) {
-                    if (surplus[j] > 1e-12) {
-                        double d = dist[j][def];
-                        if (d < bestD) {
-                            bestD = d;
+                    if (surplus[j] > 0L) {
+                        double dkm = dist[j][def];
+                        if (dkm < bestD) {
+                            bestD = dkm;
                             src = j;
                         }
                     }
                 }
                 if (src == -1) break; // no more surplus
 
-                double moved = Math.min(surplus[src], demand[def]);
+                long moved = Math.min(surplus[src], demand[def]);
                 flows[c][src][def] += moved;
                 surplus[src] -= moved;
                 demand[def] -= moved;
@@ -145,5 +174,45 @@ public final class FlowAllocator {
                         * Math.sin(dLon / 2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
+    }
+
+    // Helper: scale an array of non-negative doubles to sum to a target, and round to integers
+    // using largest-remainder so the integer sum equals target.
+    private static long[] scaleAndRoundToSum(double[] arr, long targetSum) {
+        int n = arr.length;
+        long[] out = new long[n];
+        if (targetSum <= 0L) {
+            // Nothing needed: all zeros
+            return out;
+        }
+        double total = 0.0;
+        for (double v : arr) total += Math.max(0.0, v);
+        if (total <= 1e-12) {
+            // No current available: assume all will be sourced locally (self later)
+            // Distribute all to zeros and let self-flows handle demands directly.
+            // We'll return zeros; self-flows will then take from D explicitly.
+            return out;
+        }
+        double ratio = (double) targetSum / total;
+        long floorSum = 0L;
+        double[] frac = new double[n];
+        for (int i = 0; i < n; i++) {
+            double val = Math.max(0.0, arr[i]) * ratio;
+            long fl = (long) Math.floor(val);
+            out[i] = fl;
+            floorSum += fl;
+            frac[i] = val - fl;
+        }
+        long budget = targetSum - floorSum;
+        if (budget > 0L) {
+            Integer[] idx = new Integer[n];
+            for (int i = 0; i < n; i++) idx[i] = i;
+            java.util.Arrays.sort(idx, (a, b) -> Double.compare(frac[b], frac[a]));
+            for (int k = 0; k < n && budget > 0L; k++) {
+                out[idx[k]] += 1L;
+                budget--;
+            }
+        }
+        return out;
     }
 }

@@ -1,6 +1,16 @@
 package cs43.group4;
 
+import java.lang.management.ManagementFactory;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.DoubleSummaryStatistics;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import com.sun.management.ThreadMXBean;
+
 import cs43.group4.core.DataLoader;
 import cs43.group4.core.DataLoader.Data;
 import cs43.group4.core.ExtendedFireflyAlgorithm;
@@ -8,14 +18,11 @@ import cs43.group4.core.FlowAllocator;
 import cs43.group4.core.ObjectiveFunction;
 import cs43.group4.core.ThesisObjective;
 import cs43.group4.parameters.EFAParams;
+import cs43.group4.utils.AllocationNormalizer;
 import cs43.group4.utils.AllocationResult;
 import cs43.group4.utils.FlowResult;
 import cs43.group4.utils.IterationResult;
 import cs43.group4.utils.Log;
-import java.lang.management.ManagementFactory;
-import java.nio.file.Path;
-import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class EFARunner {
     private final EFAParams params;
@@ -141,6 +148,13 @@ public class EFARunner {
         int Z = data.Z, C = data.C;
         int D = Z * C;
 
+    // Diagnostic: EFA optimizer with flows distance-aware if geo present
+    boolean haveGeo = (data.lat != null && data.lon != null);
+    boolean objectiveFiltering = true; // DomainConstraintEvaluator is used inside ExtendedFireflyAlgorithm
+    Log.info(
+        "[EFA] Running ExtendedFireflyAlgorithm. Flow distance-aware: %s; Objective filtering: %s",
+        haveGeo, objectiveFiltering);
+
         double[] lower = new double[D];
         double[] upper = new double[D];
         for (int i = 0; i < Z; i++) {
@@ -158,7 +172,7 @@ public class EFARunner {
             if (C >= 2) currentPerClass[1][i] = data.emsCurrent[i];
         }
 
-        ObjectiveFunction thesisObj = new ThesisObjective(
+    ObjectiveFunction thesisObj = new ThesisObjective(
                 Z,
                 C,
                 data.r,
@@ -172,8 +186,8 @@ public class EFARunner {
                 null,
                 1.0,
                 currentPerClass,
-                data.lat,
-                data.lon,
+                null,
+                null,
                 0.01);
 
         ExtendedFireflyAlgorithm efa = new ExtendedFireflyAlgorithm(
@@ -196,29 +210,16 @@ public class EFARunner {
             if (stopped) return;
 
             currentIteration = generation;
-            double[][] Aiter = new double[Z][C];
-            int kk2 = 0;
-            for (int i = 0; i < Z; i++) {
-                for (int c = 0; c < C; c++, kk2++) {
-                    Aiter[i][c] = Math.max(0.0, bestX[kk2]);
-                }
-            }
-            for (int c = 0; c < C; c++) {
-                double used = 0.0;
-                for (int i = 0; i < Z; i++) used += Aiter[i][c];
-                double cap = data.supply[c];
-                if (used > cap + 1e-6) {
-                    double scale = cap / (used + 1e-6);
-                    for (int i = 0; i < Z; i++) Aiter[i][c] *= scale;
-                }
-            }
-            double fit = estimateFitness(Aiter, data, 1e-6);
-            fit = roundToPrecision(fit);
-            iterationHistory.add(new IterationResult(generation, fit));
+            // Use optimizer's best value to ensure monotonic best-so-far
+            double bestMin = efa.getBestValue();
+            double bestFit = -bestMin; // convert to maximization-style fitness
+            bestFit = roundToPrecision(bestFit);
+            iterationHistory.add(new IterationResult(generation, bestFit));
 
             if (generation % 50 == 0) {
                 String runPrefix = (totalRuns > 1) ? "[Run " + currentRun + "/" + totalRuns + "] " : "";
-                Log.info(runPrefix + "Iter " + generation + ": Fitness Score (Maximization) = " + fit);
+                double logFit = iterationHistory.isEmpty() ? bestFit : iterationHistory.get(iterationHistory.size()-1).fitness;
+                Log.info(runPrefix + "Iter " + generation + ": Fitness Score (Maximization) = " + logFit);
             }
         });
 
@@ -248,11 +249,13 @@ public class EFARunner {
             }
         }
 
-        double fitness = estimateFitness(A, data, 1e-6);
-        double minimizedObjective = -(fitness) + estimateSupplyPenalty(A, data);
-        minimizedObjective = roundToPrecision(minimizedObjective);
+        // Final normalization: integer allocations that do not exceed per-class supplies
+        A = AllocationNormalizer.enforceSupplyAndRound(A, data.supply);
 
-        bestFitness = roundToPrecision(fitness);
+    // Use optimizer's best value for final metrics
+    double minimizedObjective = efa.getBestValue();
+    minimizedObjective = roundToPrecision(minimizedObjective);
+    bestFitness = roundToPrecision(-minimizedObjective);
         executionTime = roundToPrecision((endTime - startTime) / 1_000_000.0);
         memoryUsage = allocatedAfter - allocatedBefore;
 
