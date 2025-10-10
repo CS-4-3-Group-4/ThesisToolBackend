@@ -148,6 +148,13 @@ public class EFARunner {
         int Z = data.Z, C = data.C;
         int D = Z * C;
 
+    // Diagnostic: EFA optimizer with flows distance-aware if geo present
+    boolean haveGeo = (data.lat != null && data.lon != null);
+    boolean objectiveFiltering = true; // DomainConstraintEvaluator is used inside ExtendedFireflyAlgorithm
+    Log.info(
+        "[EFA] Running ExtendedFireflyAlgorithm. Flow distance-aware: %s; Objective filtering: %s",
+        haveGeo, objectiveFiltering);
+
         double[] lower = new double[D];
         double[] upper = new double[D];
         for (int i = 0; i < Z; i++) {
@@ -165,7 +172,7 @@ public class EFARunner {
             if (C >= 2) currentPerClass[1][i] = data.emsCurrent[i];
         }
 
-        ObjectiveFunction thesisObj = new ThesisObjective(
+    ObjectiveFunction thesisObj = new ThesisObjective(
                 Z,
                 C,
                 data.r,
@@ -179,8 +186,8 @@ public class EFARunner {
                 null,
                 1.0,
                 currentPerClass,
-                data.lat,
-                data.lon,
+                null,
+                null,
                 0.01);
 
         ExtendedFireflyAlgorithm efa = new ExtendedFireflyAlgorithm(

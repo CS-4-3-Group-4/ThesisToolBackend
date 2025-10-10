@@ -149,6 +149,12 @@ public class FARunner {
         int Z = data.Z, C = data.C;
         int D = Z * C;
 
+    // Diagnostic: FA runs baseline optimizer with flows distance-aware if geo present
+    boolean haveGeo = (data.lat != null && data.lon != null);
+    Log.info(
+        "[FA] Running FireflyAlgorithm (baseline). Flow distance-aware: %s",
+        haveGeo);
+
         double[] lower = new double[D];
         double[] upper = new double[D];
         for (int i = 0; i < Z; i++) {
@@ -166,7 +172,7 @@ public class FARunner {
             if (C >= 2) currentPerClass[1][i] = data.emsCurrent[i];
         }
 
-        ObjectiveFunction thesisObj = new ThesisObjective(
+    ObjectiveFunction thesisObj = new ThesisObjective(
                 Z,
                 C,
                 data.r,
@@ -180,8 +186,8 @@ public class FARunner {
                 null,
                 1.0,
                 currentPerClass,
-                data.lat,
-                data.lon,
+                null,
+                null,
                 0.01);
 
         FireflyAlgorithm fa = new FireflyAlgorithm(
@@ -199,28 +205,11 @@ public class FARunner {
             if (stopped) return;
 
             currentIteration = generation;
-            // Rebuild A from the best-so-far solution to compute display fitness (maximization)
-            double[][] Aiter = new double[Z][C];
-            int kk2 = 0;
-            for (int i = 0; i < Z; i++) {
-                for (int c = 0; c < C; c++, kk2++) {
-                    Aiter[i][c] = Math.max(0.0, bestX[kk2]);
-                }
-            }
-            // Respect supplies via proportional scaling (no rounding) for display fitness
-            for (int c = 0; c < C; c++) {
-                double used = 0.0;
-                for (int i = 0; i < Z; i++) used += Aiter[i][c];
-                double cap = data.supply[c];
-                if (used > cap + 1e-6 && used > 0) {
-                    double scale = cap / (used + 1e-6);
-                    for (int i = 0; i < Z; i++) Aiter[i][c] *= scale;
-                }
-            }
-            double fit = estimateFitness(Aiter, data, 1e-6);
-            if (fit > bestFitness) bestFitness = fit;
-            double bf = roundToPrecision(bestFitness);
-            iterationHistory.add(new IterationResult(generation, bf));
+            // Use optimizer's best minimization value -> convert to maximization for display
+            double bestMin = fa.getBestValue();
+            double bestFit = -bestMin;
+            bestFit = roundToPrecision(bestFit);
+            iterationHistory.add(new IterationResult(generation, bestFit));
 
             if (generation % 50 == 0) {
                 String runPrefix = (totalRuns > 1) ? "[Run " + currentRun + "/" + totalRuns + "] " : "";
@@ -261,7 +250,7 @@ public class FARunner {
     // Derive final metrics from optimizer's best values to reflect the true optimum found
     double minimizedObjective = fa.getBestValue();
     minimizedObjective = roundToPrecision(minimizedObjective);
-    bestFitness = roundToPrecision(bestFitness);
+    bestFitness = roundToPrecision(-minimizedObjective);
         executionTime = roundToPrecision((endTime - startTime) / 1_000_000.0);
         memoryUsage = allocatedAfter - allocatedBefore;
 
