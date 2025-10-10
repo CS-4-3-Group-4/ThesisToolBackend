@@ -1,6 +1,17 @@
 package cs43.group4;
 
+import java.lang.management.ManagementFactory;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.DoubleSummaryStatistics;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import com.sun.management.ThreadMXBean;
+
 import cs43.group4.core.DataLoader;
 import cs43.group4.core.DataLoader.Data;
 import cs43.group4.core.FireflyAlgorithm;
@@ -8,15 +19,11 @@ import cs43.group4.core.FlowAllocator;
 import cs43.group4.core.ObjectiveFunction;
 import cs43.group4.core.ThesisObjective;
 import cs43.group4.parameters.FAParams;
+import cs43.group4.utils.AllocationNormalizer;
 import cs43.group4.utils.AllocationResult;
 import cs43.group4.utils.FlowResult;
 import cs43.group4.utils.IterationResult;
 import cs43.group4.utils.Log;
-import java.lang.management.ManagementFactory;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class FARunner {
     private final FAParams params;
@@ -192,6 +199,7 @@ public class FARunner {
             if (stopped) return;
 
             currentIteration = generation;
+            // Rebuild A from the best-so-far solution to compute display fitness (maximization)
             double[][] Aiter = new double[Z][C];
             int kk2 = 0;
             for (int i = 0; i < Z; i++) {
@@ -199,22 +207,25 @@ public class FARunner {
                     Aiter[i][c] = Math.max(0.0, bestX[kk2]);
                 }
             }
+            // Respect supplies via proportional scaling (no rounding) for display fitness
             for (int c = 0; c < C; c++) {
                 double used = 0.0;
                 for (int i = 0; i < Z; i++) used += Aiter[i][c];
                 double cap = data.supply[c];
-                if (used > cap + 1e-6) {
+                if (used > cap + 1e-6 && used > 0) {
                     double scale = cap / (used + 1e-6);
                     for (int i = 0; i < Z; i++) Aiter[i][c] *= scale;
                 }
             }
             double fit = estimateFitness(Aiter, data, 1e-6);
-            fit = roundToPrecision(fit);
-            iterationHistory.add(new IterationResult(generation, fit));
+            if (fit > bestFitness) bestFitness = fit;
+            double bf = roundToPrecision(bestFitness);
+            iterationHistory.add(new IterationResult(generation, bf));
 
             if (generation % 50 == 0) {
                 String runPrefix = (totalRuns > 1) ? "[Run " + currentRun + "/" + totalRuns + "] " : "";
-                Log.info(runPrefix + "Iter " + generation + ": Fitness Score (Maximization) = " + fit);
+                double logFit = iterationHistory.isEmpty() ? 0.0 : iterationHistory.get(iterationHistory.size()-1).fitness;
+                Log.info(runPrefix + "Iter " + generation + ": Fitness Score (Maximization) = " + logFit);
             }
         });
 
@@ -244,11 +255,13 @@ public class FARunner {
             }
         }
 
-        double fitness = estimateFitness(A, data, 1e-6);
-        double minimizedObjective = -(fitness) + estimateSupplyPenalty(A, data);
-        minimizedObjective = roundToPrecision(minimizedObjective);
+        // Final normalization: integer allocations that do not exceed per-class supplies
+        A = AllocationNormalizer.enforceSupplyAndRound(A, data.supply);
 
-        bestFitness = roundToPrecision(fitness);
+    // Derive final metrics from optimizer's best values to reflect the true optimum found
+    double minimizedObjective = fa.getBestValue();
+    minimizedObjective = roundToPrecision(minimizedObjective);
+    bestFitness = roundToPrecision(bestFitness);
         executionTime = roundToPrecision((endTime - startTime) / 1_000_000.0);
         memoryUsage = allocatedAfter - allocatedBefore;
 
@@ -271,12 +284,12 @@ public class FARunner {
             // writeFlowsCsv(flow.flows, data, Path.of("out", "flows.csv"));
             // writeAllocationsCsv(A, data, Path.of("out", "allocations.csv"));
 
-            results = Map.of(
-                    "fitnessMaximization", bestFitness,
-                    "fitnessMinimization", minimizedObjective,
-                    "totalIterations", params.generations,
-                    "executionTimeMs", executionTime,
-                    "memoryBytes", memoryUsage);
+        results = Map.of(
+            "fitnessMaximization", bestFitness,
+            "fitnessMinimization", minimizedObjective,
+            "totalIterations", params.generations,
+            "executionTimeMs", executionTime,
+            "memoryBytes", memoryUsage);
 
             // System.out.println(banner("Output Files"));
             // System.out.println("Wrote allocations CSV to: " + allocsPath.toString());
