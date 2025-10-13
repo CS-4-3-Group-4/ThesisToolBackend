@@ -1,16 +1,6 @@
 package cs43.group4;
 
-import java.lang.management.ManagementFactory;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.DoubleSummaryStatistics;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import com.sun.management.ThreadMXBean;
-
 import cs43.group4.core.DataLoader;
 import cs43.group4.core.DataLoader.Data;
 import cs43.group4.core.ExtendedFireflyAlgorithm;
@@ -23,6 +13,14 @@ import cs43.group4.utils.AllocationResult;
 import cs43.group4.utils.FlowResult;
 import cs43.group4.utils.IterationResult;
 import cs43.group4.utils.Log;
+import java.lang.management.ManagementFactory;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.DoubleSummaryStatistics;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class EFARunner {
     private final EFAParams params;
@@ -148,12 +146,12 @@ public class EFARunner {
         int Z = data.Z, C = data.C;
         int D = Z * C;
 
-    // Diagnostic: EFA optimizer with flows distance-aware if geo present
-    boolean haveGeo = (data.lat != null && data.lon != null);
-    boolean objectiveFiltering = true; // DomainConstraintEvaluator is used inside ExtendedFireflyAlgorithm
-    Log.info(
-        "[EFA] Running ExtendedFireflyAlgorithm. Flow distance-aware: %s; Objective filtering: %s",
-        haveGeo, objectiveFiltering);
+        // Diagnostic: EFA optimizer with flows distance-aware if geo present
+        boolean haveGeo = (data.lat != null && data.lon != null);
+        boolean objectiveFiltering = true; // DomainConstraintEvaluator is used inside ExtendedFireflyAlgorithm
+        Log.info(
+                "[EFA] Running ExtendedFireflyAlgorithm. Flow distance-aware: %s; Objective filtering: %s",
+                haveGeo, objectiveFiltering);
 
         double[] lower = new double[D];
         double[] upper = new double[D];
@@ -172,7 +170,7 @@ public class EFARunner {
             if (C >= 2) currentPerClass[1][i] = data.emsCurrent[i];
         }
 
-    ObjectiveFunction thesisObj = new ThesisObjective(
+        ObjectiveFunction thesisObj = new ThesisObjective(
                 Z,
                 C,
                 data.r,
@@ -218,7 +216,9 @@ public class EFARunner {
 
             if (generation % 50 == 0) {
                 String runPrefix = (totalRuns > 1) ? "[Run " + currentRun + "/" + totalRuns + "] " : "";
-                double logFit = iterationHistory.isEmpty() ? bestFit : iterationHistory.get(iterationHistory.size()-1).fitness;
+                double logFit = iterationHistory.isEmpty()
+                        ? bestFit
+                        : iterationHistory.get(iterationHistory.size() - 1).fitness;
                 Log.info(runPrefix + "Iter " + generation + ": Fitness Score (Maximization) = " + logFit);
             }
         });
@@ -252,10 +252,10 @@ public class EFARunner {
         // Final normalization: integer allocations that do not exceed per-class supplies
         A = AllocationNormalizer.enforceSupplyAndRound(A, data.supply);
 
-    // Use optimizer's best value for final metrics
-    double minimizedObjective = efa.getBestValue();
-    minimizedObjective = roundToPrecision(minimizedObjective);
-    bestFitness = roundToPrecision(-minimizedObjective);
+        // Use optimizer's best value for final metrics
+        double minimizedObjective = efa.getBestValue();
+        minimizedObjective = roundToPrecision(minimizedObjective);
+        bestFitness = roundToPrecision(-minimizedObjective);
         executionTime = roundToPrecision((endTime - startTime) / 1_000_000.0);
         memoryUsage = allocatedAfter - allocatedBefore;
 

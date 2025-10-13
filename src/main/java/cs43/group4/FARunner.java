@@ -1,17 +1,6 @@
 package cs43.group4;
 
-import java.lang.management.ManagementFactory;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.DoubleSummaryStatistics;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import com.sun.management.ThreadMXBean;
-
 import cs43.group4.core.DataLoader;
 import cs43.group4.core.DataLoader.Data;
 import cs43.group4.core.FireflyAlgorithm;
@@ -24,6 +13,15 @@ import cs43.group4.utils.AllocationResult;
 import cs43.group4.utils.FlowResult;
 import cs43.group4.utils.IterationResult;
 import cs43.group4.utils.Log;
+import java.lang.management.ManagementFactory;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.DoubleSummaryStatistics;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class FARunner {
     private final FAParams params;
@@ -149,11 +147,9 @@ public class FARunner {
         int Z = data.Z, C = data.C;
         int D = Z * C;
 
-    // Diagnostic: FA runs baseline optimizer with flows distance-aware if geo present
-    boolean haveGeo = (data.lat != null && data.lon != null);
-    Log.info(
-        "[FA] Running FireflyAlgorithm (baseline). Flow distance-aware: %s",
-        haveGeo);
+        // Diagnostic: FA runs baseline optimizer with flows distance-aware if geo present
+        boolean haveGeo = (data.lat != null && data.lon != null);
+        Log.info("[FA] Running FireflyAlgorithm (baseline). Flow distance-aware: %s", haveGeo);
 
         double[] lower = new double[D];
         double[] upper = new double[D];
@@ -172,7 +168,7 @@ public class FARunner {
             if (C >= 2) currentPerClass[1][i] = data.emsCurrent[i];
         }
 
-    ObjectiveFunction thesisObj = new ThesisObjective(
+        ObjectiveFunction thesisObj = new ThesisObjective(
                 Z,
                 C,
                 data.r,
@@ -213,7 +209,8 @@ public class FARunner {
 
             if (generation % 50 == 0) {
                 String runPrefix = (totalRuns > 1) ? "[Run " + currentRun + "/" + totalRuns + "] " : "";
-                double logFit = iterationHistory.isEmpty() ? 0.0 : iterationHistory.get(iterationHistory.size()-1).fitness;
+                double logFit =
+                        iterationHistory.isEmpty() ? 0.0 : iterationHistory.get(iterationHistory.size() - 1).fitness;
                 Log.info(runPrefix + "Iter " + generation + ": Fitness Score (Maximization) = " + logFit);
             }
         });
@@ -247,10 +244,10 @@ public class FARunner {
         // Final normalization: integer allocations that do not exceed per-class supplies
         A = AllocationNormalizer.enforceSupplyAndRound(A, data.supply);
 
-    // Derive final metrics from optimizer's best values to reflect the true optimum found
-    double minimizedObjective = fa.getBestValue();
-    minimizedObjective = roundToPrecision(minimizedObjective);
-    bestFitness = roundToPrecision(-minimizedObjective);
+        // Derive final metrics from optimizer's best values to reflect the true optimum found
+        double minimizedObjective = fa.getBestValue();
+        minimizedObjective = roundToPrecision(minimizedObjective);
+        bestFitness = roundToPrecision(-minimizedObjective);
         executionTime = roundToPrecision((endTime - startTime) / 1_000_000.0);
         memoryUsage = allocatedAfter - allocatedBefore;
 
@@ -273,12 +270,12 @@ public class FARunner {
             // writeFlowsCsv(flow.flows, data, Path.of("out", "flows.csv"));
             // writeAllocationsCsv(A, data, Path.of("out", "allocations.csv"));
 
-        results = Map.of(
-            "fitnessMaximization", bestFitness,
-            "fitnessMinimization", minimizedObjective,
-            "totalIterations", params.generations,
-            "executionTimeMs", executionTime,
-            "memoryBytes", memoryUsage);
+            results = Map.of(
+                    "fitnessMaximization", bestFitness,
+                    "fitnessMinimization", minimizedObjective,
+                    "totalIterations", params.generations,
+                    "executionTimeMs", executionTime,
+                    "memoryBytes", memoryUsage);
 
             // System.out.println(banner("Output Files"));
             // System.out.println("Wrote allocations CSV to: " + allocsPath.toString());
