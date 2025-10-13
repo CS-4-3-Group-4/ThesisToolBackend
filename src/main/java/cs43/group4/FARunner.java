@@ -1,6 +1,17 @@
 package cs43.group4;
 
+import java.lang.management.ManagementFactory;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.DoubleSummaryStatistics;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import com.sun.management.ThreadMXBean;
+
 import cs43.group4.core.DataLoader;
 import cs43.group4.core.DataLoader.Data;
 import cs43.group4.core.FireflyAlgorithm;
@@ -13,15 +24,6 @@ import cs43.group4.utils.AllocationResult;
 import cs43.group4.utils.FlowResult;
 import cs43.group4.utils.IterationResult;
 import cs43.group4.utils.Log;
-import java.lang.management.ManagementFactory;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.DoubleSummaryStatistics;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class FARunner {
     private final FAParams params;
@@ -168,7 +170,7 @@ public class FARunner {
             if (C >= 2) currentPerClass[1][i] = data.emsCurrent[i];
         }
 
-        ObjectiveFunction thesisObj = new ThesisObjective(
+        ObjectiveFunction baseObjective = new ThesisObjective(
                 Z,
                 C,
                 data.r,
@@ -185,6 +187,16 @@ public class FARunner {
                 null,
                 null,
                 0.01);
+
+        final double objScale = params.objectiveScale;
+        ObjectiveFunction thesisObj = new ObjectiveFunction() {
+            @Override
+            public double evaluate(double[] x) {
+                // ThesisObjective returns minimization value (-(fitness)+penalties).
+                double v = baseObjective.evaluate(x);
+                return v * objScale;
+            }
+        };
 
         FireflyAlgorithm fa = new FireflyAlgorithm(
                 thesisObj,
@@ -203,6 +215,7 @@ public class FARunner {
             currentIteration = generation;
             // Use optimizer's best minimization value -> convert to maximization for display
             double bestMin = fa.getBestValue();
+            // Report the scaled fitness directly (consistent with scaled optimization objective)
             double bestFit = -bestMin;
             bestFit = roundToPrecision(bestFit);
             iterationHistory.add(new IterationResult(generation, bestFit));
@@ -245,9 +258,9 @@ public class FARunner {
         A = AllocationNormalizer.enforceSupplyAndRound(A, data.supply);
 
         // Derive final metrics from optimizer's best values to reflect the true optimum found
-        double minimizedObjective = fa.getBestValue();
-        minimizedObjective = roundToPrecision(minimizedObjective);
-        bestFitness = roundToPrecision(-minimizedObjective);
+    double minimizedObjective = fa.getBestValue();
+    minimizedObjective = roundToPrecision(minimizedObjective);
+    bestFitness = roundToPrecision(-minimizedObjective);
         executionTime = roundToPrecision((endTime - startTime) / 1_000_000.0);
         memoryUsage = allocatedAfter - allocatedBefore;
 
@@ -270,9 +283,9 @@ public class FARunner {
             // writeFlowsCsv(flow.flows, data, Path.of("out", "flows.csv"));
             // writeAllocationsCsv(A, data, Path.of("out", "allocations.csv"));
 
-            results = Map.of(
-                    "fitnessMaximization", bestFitness,
-                    "fitnessMinimization", minimizedObjective,
+        results = Map.of(
+            "fitnessMaximization", bestFitness,
+            "fitnessMinimization", minimizedObjective,
                     "totalIterations", params.generations,
                     "executionTimeMs", executionTime,
                     "memoryBytes", memoryUsage);
@@ -285,9 +298,9 @@ public class FARunner {
             // System.out.println();
         } else {
             // For multiple runs, just store minimal results
-            results = Map.of(
-                    "fitnessMaximization", bestFitness,
-                    "fitnessMinimization", minimizedObjective,
+        results = Map.of(
+            "fitnessMaximization", bestFitness,
+            "fitnessMinimization", minimizedObjective,
                     "executionTimeMs", executionTime,
                     "memoryBytes", memoryUsage);
         }

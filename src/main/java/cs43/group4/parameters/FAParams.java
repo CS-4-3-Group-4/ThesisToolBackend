@@ -7,6 +7,7 @@ public class FAParams {
     public double alphaFinal = 0.05;
     public double beta0 = 1.0;
     public double gamma = 1.0;
+    public double objectiveScale = 0.95;
 
     /**
      * Validate the algorithm parameters.
@@ -35,7 +36,7 @@ public class FAParams {
                 + alpha0 + ",\n" + "  alphaFinal = "
                 + alphaFinal + ",\n" + "  beta0 = "
                 + beta0 + ",\n" + "  gamma = "
-                + gamma + "\n" + "}";
+                + gamma + ",\n" + "  objectiveScale = ";
     }
 }
 
