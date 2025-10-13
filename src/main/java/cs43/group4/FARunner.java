@@ -188,7 +188,7 @@ public class FARunner {
                 null,
                 0.01);
 
-        final double objScale = params.objectiveScale;
+    final double objScale = params.os;
         ObjectiveFunction thesisObj = new ObjectiveFunction() {
             @Override
             public double evaluate(double[] x) {

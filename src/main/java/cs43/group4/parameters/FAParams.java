@@ -7,7 +7,7 @@ public class FAParams {
     public double alphaFinal = 0.05;
     public double beta0 = 1.0;
     public double gamma = 1.0;
-    public double objectiveScale = 0.95;
+    public double os = 0.95;
 
     /**
      * Validate the algorithm parameters.
@@ -26,17 +26,20 @@ public class FAParams {
         if (beta0 > 10) throw new IllegalArgumentException("beta0 too large: " + beta0);
         if (gamma < 0.1) throw new IllegalArgumentException("Invalid gamma: " + gamma);
         if (gamma > 10) throw new IllegalArgumentException("gamma too large: " + gamma);
+        if (os <= 0) throw new IllegalArgumentException("Invalid os: " + os);
+        if (os > 10) throw new IllegalArgumentException("os too large: " + os);
     }
 
     @Override
     public String toString() {
-        return "AlgorithmParams {\n" + "  generations = "
-                + generations + ",\n" + "  numFireflies = "
-                + numFireflies + ",\n" + "  alpha0 = "
-                + alpha0 + ",\n" + "  alphaFinal = "
-                + alphaFinal + ",\n" + "  beta0 = "
-                + beta0 + ",\n" + "  gamma = "
-                + gamma + ",\n" + "  objectiveScale = ";
+        return "AlgorithmParams {\n"
+                + "  generations = " + generations + ",\n"
+                + "  numFireflies = " + numFireflies + ",\n"
+                + "  alpha0 = " + alpha0 + ",\n"
+                + "  alphaFinal = " + alphaFinal + ",\n"
+                + "  beta0 = " + beta0 + ",\n"
+                + "  gamma = " + gamma + ",\n"
+                + "}";
     }
 }
 
