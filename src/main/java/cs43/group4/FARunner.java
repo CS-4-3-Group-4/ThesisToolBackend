@@ -170,7 +170,7 @@ public class FARunner {
             if (C >= 2) currentPerClass[1][i] = data.emsCurrent[i];
         }
 
-        ObjectiveFunction baseObjective = new ThesisObjective(
+    ObjectiveFunction baseObjective = new ThesisObjective(
                 Z,
                 C,
                 data.r,
@@ -188,15 +188,8 @@ public class FARunner {
                 null,
                 0.01);
 
-    final double objScale = params.os;
-        ObjectiveFunction thesisObj = new ObjectiveFunction() {
-            @Override
-            public double evaluate(double[] x) {
-                // ThesisObjective returns minimization value (-(fitness)+penalties).
-                double v = baseObjective.evaluate(x);
-                return v * objScale;
-            }
-        };
+        // Use the base objective directly without additional scaling
+        ObjectiveFunction thesisObj = baseObjective;
 
         FireflyAlgorithm fa = new FireflyAlgorithm(
                 thesisObj,
@@ -215,7 +208,7 @@ public class FARunner {
             currentIteration = generation;
             // Use optimizer's best minimization value -> convert to maximization for display
             double bestMin = fa.getBestValue();
-            // Report the scaled fitness directly (consistent with scaled optimization objective)
+            // Report the fitness directly (maximization = negative of minimization value)
             double bestFit = -bestMin;
             bestFit = roundToPrecision(bestFit);
             iterationHistory.add(new IterationResult(generation, bestFit));

@@ -1,5 +1,8 @@
 package cs43.group4.parameters;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class FAParams {
     public int generations = 300;
     public int numFireflies = 50;
@@ -7,7 +10,6 @@ public class FAParams {
     public double alphaFinal = 0.05;
     public double beta0 = 1.0;
     public double gamma = 1.0;
-    public double os = 0.95;
 
     /**
      * Validate the algorithm parameters.
@@ -26,8 +28,6 @@ public class FAParams {
         if (beta0 > 10) throw new IllegalArgumentException("beta0 too large: " + beta0);
         if (gamma < 0.1) throw new IllegalArgumentException("Invalid gamma: " + gamma);
         if (gamma > 10) throw new IllegalArgumentException("gamma too large: " + gamma);
-        if (os <= 0) throw new IllegalArgumentException("Invalid os: " + os);
-        if (os > 10) throw new IllegalArgumentException("os too large: " + os);
     }
 
     @Override
