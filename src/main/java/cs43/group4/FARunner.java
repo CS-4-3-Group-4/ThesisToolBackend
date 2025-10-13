@@ -427,7 +427,8 @@ public class FARunner {
         return aggregated;
     }
 
-    private double calculateStdDev(List<RunResult> results, String key, double mean) {
+    @SuppressWarnings("unused")
+private double calculateStdDev(List<RunResult> results, String key, double mean) {
         double sumSquaredDiff = 0.0;
         int count = 0;
 
@@ -542,6 +543,7 @@ public class FARunner {
 
     // ========== UTILITY METHODS (unchanged) ==========
 
+    @SuppressWarnings("unused")
     private static void writeAllocationsCsv(double[][] A, Data data, Path path) {
         try {
             Files.createDirectories(path.getParent());
@@ -564,6 +566,7 @@ public class FARunner {
         }
     }
 
+    @SuppressWarnings("unused")
     private static void writeFlowsCsv(double[][][] flows, Data data, Path path) {
         try {
             Files.createDirectories(path.getParent());
@@ -607,6 +610,7 @@ public class FARunner {
         return s;
     }
 
+    @SuppressWarnings("unused")
     private static double estimateFitness(double[][] A, Data data, double eps) {
         int Z = data.Z, C = data.C;
         double[] totalPerI = new double[Z];
@@ -655,6 +659,7 @@ public class FARunner {
         return obj1 + obj2 - obj3 + obj4;
     }
 
+    @SuppressWarnings("unused")
     private static double estimateSupplyPenalty(double[][] A, Data data) {
         int Z = data.Z, C = data.C;
         double wSupply = 10.0;
@@ -675,6 +680,7 @@ public class FARunner {
 
     private static final int BANNER_WIDTH = 64;
 
+    @SuppressWarnings("unused")
     private static String banner(String label) {
         String text = " " + label.trim() + " ";
         int pad = Math.max(0, BANNER_WIDTH - text.length());
@@ -683,6 +689,7 @@ public class FARunner {
         return "=".repeat(left) + text + "=".repeat(right);
     }
 
+    @SuppressWarnings("unused")
     private static String line() {
         return "=".repeat(BANNER_WIDTH);
     }

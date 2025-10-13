@@ -516,7 +516,7 @@ public class EFARunner {
     }
 
     // ========== UTILITY METHODS ==========
-
+    @SuppressWarnings("unused")
     private static double estimateFitness(double[][] A, Data data, double eps) {
         int Z = data.Z, C = data.C;
         double[] totalPerI = new double[Z];
@@ -565,6 +565,7 @@ public class EFARunner {
         return obj1 + obj2 - obj3 + obj4;
     }
 
+    @SuppressWarnings("unused")
     private static double estimateSupplyPenalty(double[][] A, Data data) {
         int Z = data.Z, C = data.C;
         double wSupply = 10.0;
