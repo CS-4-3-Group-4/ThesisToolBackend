@@ -1,19 +1,18 @@
 package cs43.group4;
 
-import java.util.Map;
-
 import cs43.group4.controllers.DataController;
 import cs43.group4.controllers.EFAController;
 import cs43.group4.controllers.FAController;
 import cs43.group4.utils.Log;
 import io.javalin.Javalin;
+import java.util.Map;
 
 public class Main {
     private static final int PORT = 8080;
 
     public static void main(String[] args) {
 
-        //Log.setLevel(Log.Level.OFF);
+        // Log.setLevel(Log.Level.OFF);
         Javalin app = Javalin.create(config -> {
                     config.http.defaultContentType = "application/json";
                     config.bundledPlugins.enableCors(cors -> cors.addRule(it -> it.anyHost()));

@@ -1,17 +1,6 @@
 package cs43.group4;
 
-import java.lang.management.ManagementFactory;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.DoubleSummaryStatistics;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import com.sun.management.ThreadMXBean;
-
 import cs43.group4.core.DataLoader;
 import cs43.group4.core.DataLoader.Data;
 import cs43.group4.core.FireflyAlgorithm;
@@ -24,6 +13,15 @@ import cs43.group4.utils.AllocationResult;
 import cs43.group4.utils.FlowResult;
 import cs43.group4.utils.IterationResult;
 import cs43.group4.utils.Log;
+import java.lang.management.ManagementFactory;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.DoubleSummaryStatistics;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class FARunner {
     private final FAParams params;
@@ -170,7 +168,7 @@ public class FARunner {
             if (C >= 2) currentPerClass[1][i] = data.emsCurrent[i];
         }
 
-    ObjectiveFunction baseObjective = new ThesisObjective(
+        ObjectiveFunction baseObjective = new ThesisObjective(
                 Z,
                 C,
                 data.r,
@@ -251,9 +249,9 @@ public class FARunner {
         A = AllocationNormalizer.enforceSupplyAndRound(A, data.supply);
 
         // Derive final metrics from optimizer's best values to reflect the true optimum found
-    double minimizedObjective = fa.getBestValue();
-    minimizedObjective = roundToPrecision(minimizedObjective);
-    bestFitness = roundToPrecision(-minimizedObjective);
+        double minimizedObjective = fa.getBestValue();
+        minimizedObjective = roundToPrecision(minimizedObjective);
+        bestFitness = roundToPrecision(-minimizedObjective);
         executionTime = roundToPrecision((endTime - startTime) / 1_000_000.0);
         memoryUsage = allocatedAfter - allocatedBefore;
 
@@ -276,12 +274,17 @@ public class FARunner {
             // writeFlowsCsv(flow.flows, data, Path.of("out", "flows.csv"));
             // writeAllocationsCsv(A, data, Path.of("out", "allocations.csv"));
 
-        results = Map.of(
-            "fitnessMaximization", bestFitness,
-            "fitnessMinimization", minimizedObjective,
-                    "totalIterations", params.generations,
-                    "executionTimeMs", executionTime,
-                    "memoryBytes", memoryUsage);
+            results = Map.of(
+                    "fitnessMaximization",
+                    bestFitness,
+                    "fitnessMinimization",
+                    minimizedObjective,
+                    "totalIterations",
+                    params.generations,
+                    "executionTimeMs",
+                    executionTime,
+                    "memoryBytes",
+                    memoryUsage);
 
             // System.out.println(banner("Output Files"));
             // System.out.println("Wrote allocations CSV to: " + allocsPath.toString());
@@ -291,11 +294,15 @@ public class FARunner {
             // System.out.println();
         } else {
             // For multiple runs, just store minimal results
-        results = Map.of(
-            "fitnessMaximization", bestFitness,
-            "fitnessMinimization", minimizedObjective,
-                    "executionTimeMs", executionTime,
-                    "memoryBytes", memoryUsage);
+            results = Map.of(
+                    "fitnessMaximization",
+                    bestFitness,
+                    "fitnessMinimization",
+                    minimizedObjective,
+                    "executionTimeMs",
+                    executionTime,
+                    "memoryBytes",
+                    memoryUsage);
         }
     }
 
@@ -428,7 +435,7 @@ public class FARunner {
     }
 
     @SuppressWarnings("unused")
-private double calculateStdDev(List<RunResult> results, String key, double mean) {
+    private double calculateStdDev(List<RunResult> results, String key, double mean) {
         double sumSquaredDiff = 0.0;
         int count = 0;
 

@@ -1,5 +1,7 @@
 package cs43.group4.controllers;
 
+import cs43.group4.utils.Log;
+import io.javalin.http.Context;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -9,9 +11,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import cs43.group4.utils.Log;
-import io.javalin.http.Context;
-
 public class DataController {
 
     public void getBarangays(Context ctx) {
@@ -20,18 +19,16 @@ public class DataController {
             var csvPath = Path.of("data", "barangays.csv");
             if (!Files.exists(csvPath)) {
                 Log.error("CSV not found at %s", csvPath.toAbsolutePath().toString());
-                ctx.status(500).json(Map.of(
-                        "status", "error",
-                        "message", "barangays.csv not found"));
+                ctx.status(500)
+                        .json(Map.of(
+                                "status", "error",
+                                "message", "barangays.csv not found"));
                 return;
             }
 
             List<String> lines = Files.readAllLines(csvPath, StandardCharsets.UTF_8);
             if (lines.isEmpty()) {
-                ctx.json(Map.of(
-                        "status", "success",
-                        "count", 0,
-                        "data", List.of()));
+                ctx.json(Map.of("status", "success", "count", 0, "data", List.of()));
                 return;
             }
 
@@ -63,20 +60,19 @@ public class DataController {
                 data.add(obj);
             }
 
-            ctx.json(Map.of(
-                    "status", "success",
-                    "count", data.size(),
-                    "data", data));
+            ctx.json(Map.of("status", "success", "count", data.size(), "data", data));
         } catch (IOException e) {
             Log.error("Failed to read barangays.csv: %s", e.getMessage(), e);
-            ctx.status(500).json(Map.of(
-                    "status", "error",
-                    "message", "Failed to read barangays.csv"));
+            ctx.status(500)
+                    .json(Map.of(
+                            "status", "error",
+                            "message", "Failed to read barangays.csv"));
         } catch (Exception e) {
             Log.error("Unexpected error while parsing barangays.csv: %s", e.getMessage(), e);
-            ctx.status(500).json(Map.of(
-                    "status", "error",
-                    "message", "Unexpected error while parsing CSV"));
+            ctx.status(500)
+                    .json(Map.of(
+                            "status", "error",
+                            "message", "Unexpected error while parsing CSV"));
         }
     }
 
