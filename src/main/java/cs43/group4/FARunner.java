@@ -13,6 +13,9 @@ import cs43.group4.utils.AllocationResult;
 import cs43.group4.utils.FlowResult;
 import cs43.group4.utils.IterationResult;
 import cs43.group4.utils.Log;
+import cs43.group4.utils.ValidationResult;
+import cs43.group4.utils.ValidationResult.BarangayValidation;
+import cs43.group4.utils.ValidationResult.OverallStats;
 import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -434,23 +437,6 @@ public class FARunner {
         return aggregated;
     }
 
-    @SuppressWarnings("unused")
-    private double calculateStdDev(List<RunResult> results, String key, double mean) {
-        double sumSquaredDiff = 0.0;
-        int count = 0;
-
-        for (RunResult result : results) {
-            if (result.results.containsKey(key)) {
-                double value = (Double) result.results.get(key);
-                double diff = value - mean;
-                sumSquaredDiff += diff * diff;
-                count++;
-            }
-        }
-
-        return count > 0 ? Math.sqrt(sumSquaredDiff / count) : 0.0;
-    }
-
     public List<AllocationResult> getAllocations() {
         return new ArrayList<>(allocations);
     }
@@ -461,6 +447,112 @@ public class FARunner {
 
     public List<IterationResult> getIterationHistory() {
         return new ArrayList<>(iterationHistory);
+    }
+
+    /**
+     * Generates a comprehensive validation report based on NDRRMC standards
+     * Uses getAllocations() to get the allocation data
+     * @return ValidationResult object with all validation metrics
+     */
+    public ValidationResult getValidationReport() {
+        ValidationResult result = new ValidationResult();
+
+        try {
+            // Use the public getter instead of direct field access
+            List<AllocationResult> currentAllocations = getAllocations();
+
+            if (currentAllocations.isEmpty()) {
+                result.error = "No allocations available for validation";
+                return result;
+            }
+
+            var data = DataLoader.load(Path.of("data", "barangays.csv"), Path.of("data", "classes.csv"));
+
+            // Check if population data is available
+            if (data.populations == null) {
+                result.error = "Population data not available for validation";
+                return result;
+            }
+
+            double totalPopulationCloseness = 0.0;
+            double totalHazardCloseness = 0.0;
+            double totalCombinedScore = 0.0;
+            int validBarangays = 0;
+
+            // Process each barangay from getAllocations()
+            for (int i = 0; i < Math.min(currentAllocations.size(), data.Z); i++) {
+                AllocationResult allocation = currentAllocations.get(i);
+                double population = data.populations[i];
+
+                // Skip if population is invalid
+                if (population <= 0) continue;
+
+                // Create barangay validation object
+                String hazardLevel = determineHazardLevel(data, i);
+                BarangayValidation bv = new BarangayValidation(
+                        data.barangayIds[i], data.barangayNames[i], (long) population, hazardLevel);
+
+                // 1. POPULATION-BASED VALIDATION (1:500 baseline)
+                double idealResponders = population / 500.0;
+                double actualResponders = allocation.total;
+                bv.populationCloseness = roundToPercent((actualResponders / idealResponders) * 100);
+
+                // 2. HAZARD-BASED SAR/EMS VALIDATION
+                double[] idealRatios = getIdealSARRatio(hazardLevel);
+                double idealSAR = idealResponders * idealRatios[0];
+                double idealEMS = idealResponders * idealRatios[1];
+
+                bv.idealTotal = Math.round(idealResponders);
+                bv.idealSAR = Math.round(idealSAR);
+                bv.idealEMS = Math.round(idealEMS);
+
+                // Get actual SAR and EMS from allocation
+                long actualSAR = allocation.personnel.getOrDefault("SAR", 0L);
+                long actualEMS = allocation.personnel.getOrDefault("EMS", 0L);
+
+                bv.actualTotal = allocation.total;
+                bv.actualSAR = actualSAR;
+                bv.actualEMS = actualEMS;
+
+                // Calculate SAR closeness
+                double sarCloseness = (idealSAR > 0) ? (actualSAR / idealSAR) * 100 : 100;
+                bv.sarCloseness = roundToPercent(sarCloseness);
+
+                // Calculate EMS closeness
+                double emsCloseness = (idealEMS > 0) ? (actualEMS / idealEMS) * 100 : 100;
+                bv.emsCloseness = roundToPercent(emsCloseness);
+
+                bv.hazardCloseness = roundToPercent((sarCloseness + emsCloseness) / 2.0 * 100);
+
+                // 3. COMBINED SCORE (50% population + 50% hazard)
+                double combinedScore = (bv.populationCloseness + bv.hazardCloseness) / 2.0;
+                bv.combinedScore = roundToPercent(combinedScore);
+
+                result.barangayValidations.add(bv);
+
+                // Accumulate for overall statistics
+                totalPopulationCloseness += bv.populationCloseness;
+                totalHazardCloseness += bv.hazardCloseness;
+                totalCombinedScore += bv.combinedScore;
+                validBarangays++;
+            }
+
+            // Calculate overall statistics
+            if (validBarangays > 0) {
+                result.overallStats = new OverallStats(
+                        validBarangays,
+                        roundToPercent(totalPopulationCloseness / validBarangays),
+                        roundToPercent(totalHazardCloseness / validBarangays),
+                        roundToPercent(totalCombinedScore / validBarangays));
+                result.interpretation = result.generateSingleRunInterpretation();
+            }
+
+        } catch (Exception e) {
+            result.error = "Validation error: " + e.getMessage();
+            Log.error("Validation error: %s", e.getMessage(), e);
+        }
+
+        return result;
     }
 
     // ========== CONTROL ==========
@@ -492,6 +584,45 @@ public class FARunner {
     }
 
     // ========== HELPER CLASSES ==========
+    private String determineHazardLevel(Data data, int barangayIndex) {
+        // Determine hazard level based on risk score
+        // You can modify this to use actual hazard data if available
+        double riskScore = data.r[barangayIndex];
+
+        if (riskScore >= 0.7) return "High";
+        if (riskScore >= 0.4) return "Medium";
+        return "Low";
+    }
+
+    private double[] getIdealSARRatio(String hazardLevel) {
+        // Returns [SAR ratio, EMS ratio] based on hazard level
+        switch (hazardLevel) {
+            case "High":
+                return new double[] {0.85, 0.15};
+            case "Medium":
+                return new double[] {0.75, 0.25};
+            case "Low":
+                return new double[] {0.65, 0.35};
+            default:
+                return new double[] {0.75, 0.25}; // Default to medium
+        }
+    }
+
+    private double roundToPercent(double value) {
+        return Math.round(value * 100.0) / 100.0;
+    }
+
+    private double calculateStdDev(List<Double> values, double mean) {
+        if (values.size() <= 1) return 0.0;
+
+        double sumSquaredDiff = 0.0;
+        for (double value : values) {
+            double diff = value - mean;
+            sumSquaredDiff += diff * diff;
+        }
+
+        return Math.sqrt(sumSquaredDiff / values.size());
+    }
 
     private static class RunResult {
         final int runNumber;

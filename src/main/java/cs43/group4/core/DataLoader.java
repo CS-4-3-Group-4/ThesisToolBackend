@@ -18,6 +18,7 @@ public final class DataLoader {
         public final int C; // classes
         public final String[] barangayIds;
         public final String[] barangayNames;
+        public final double[] populations; // per barangay
         public final double[] r; // hazard 1..3
         public final double[] f; // flood depth (ft)
         public final double[] E; // exposure
@@ -36,6 +37,7 @@ public final class DataLoader {
                 int C,
                 String[] barangayIds,
                 String[] barangayNames,
+                double[] populations,
                 double[] r,
                 double[] f,
                 double[] E,
@@ -52,6 +54,7 @@ public final class DataLoader {
             this.C = C;
             this.barangayIds = barangayIds;
             this.barangayNames = barangayNames;
+            this.populations = populations;
             this.r = r;
             this.f = f;
             this.E = E;
@@ -229,6 +232,7 @@ public final class DataLoader {
                 C,
                 ids.toArray(new String[ids.size()]),
                 names.toArray(new String[names.size()]),
+                popArr,
                 rArr,
                 fArr,
                 E,

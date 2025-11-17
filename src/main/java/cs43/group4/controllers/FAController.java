@@ -191,6 +191,25 @@ public class FAController {
         }
     }
 
+    public void getValidationReport(Context ctx) {
+        Log.info("FA validation report requested");
+
+        if (runner == null) {
+            ctx.status(404).json(Map.of("error", "No algorithm has been run"));
+        } else if (runner.isRunning()) {
+            ctx.status(400).json(Map.of("error", "Algorithm still running"));
+        } else {
+            Map<String, Object> status = runner.getStatus();
+            if ("multiple".equals(status.get("mode"))) {
+                ctx.json(Map.of(
+                        "error", "Validation report not available for multiple runs",
+                        "suggestion", "Only available for single runs"));
+            } else {
+                ctx.json(Map.of("validationReport", runner.getValidationReport()));
+            }
+        }
+    }
+
     // ========== HELPER METHODS ==========
 
     private FAParams parseParams(Context ctx) {

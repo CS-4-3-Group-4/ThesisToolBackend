@@ -80,9 +80,6 @@ public class CompEffiencyProfiler {
             totalTimeNs += result.getExecutionTimeNs();
         }
 
-        return new ProfileResult(
-            totalMemory / iterations,
-            totalTimeNs / iterations
-        );
+        return new ProfileResult(totalMemory / iterations, totalTimeNs / iterations);
     }
 }

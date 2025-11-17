@@ -51,6 +51,8 @@ public class Main {
         Log.info("    Data:");
         Log.info("      GET  /fa/allocations                   - Get allocation details");
         Log.info("      GET  /fa/flows                         - Get flow details");
+        Log.info(" Validation Report:");
+        Log.info("      GET  /fa/validation                    - Get validation report");
         Log.info("");
         Log.info("");
         Log.info("  EFA Algorithm:");
@@ -69,6 +71,8 @@ public class Main {
         Log.info("    Data:");
         Log.info("      GET  /efa/allocations                  - Get allocation details");
         Log.info("      GET  /efa/flows                        - Get flow details");
+        Log.info(" Validation Report:");
+        Log.info("      GET  /efa/validation                   - Get validation report");
         Log.info("═══════════════════════════════════════════════════════════");
 
         app.get("/data/barangays", dataController::getBarangays);
@@ -91,6 +95,9 @@ public class Main {
         app.get("/fa/allocations", faController::getAllocations);
         app.get("/fa/flows", faController::getFlows);
 
+        // Validation report
+        app.get("/fa/validation", faController::getValidationReport);
+
         // ========== EFA ENDPOINTS ==========
 
         // General endpoints (work for both single and multiple runs)
@@ -108,5 +115,8 @@ public class Main {
         // Data endpoints (single run only)
         app.get("/efa/allocations", efaController::getAllocations);
         app.get("/efa/flows", efaController::getFlows);
+
+        // Validation report
+        // app.get("/efa/validation", efaController::getValidationReport);
     }
 }
