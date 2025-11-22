@@ -13,9 +13,10 @@ import cs43.group4.utils.AllocationResult;
 import cs43.group4.utils.FlowResult;
 import cs43.group4.utils.IterationResult;
 import cs43.group4.utils.Log;
-import cs43.group4.utils.ValidationResult;
-import cs43.group4.utils.ValidationResult.BarangayValidation;
-import cs43.group4.utils.ValidationResult.OverallStats;
+import cs43.group4.utils.OverallStats;
+import cs43.group4.utils.ValidationMultipleResult;
+import cs43.group4.utils.ValidationSingleResult;
+import cs43.group4.utils.ValidationSingleResult.BarangayValidation;
 import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -47,6 +48,7 @@ public class FARunner {
     private int currentRun = 0;
     private final List<RunResult> multipleRunResults = new CopyOnWriteArrayList<>();
     private final List<String> multipleRunErrors = new CopyOnWriteArrayList<>();
+    private final List<ValidationSingleResult> multipleValidationResults = new CopyOnWriteArrayList<>();
     private long multiRunStartTime;
     private long multiRunEndTime;
 
@@ -452,10 +454,10 @@ public class FARunner {
     /**
      * Generates a comprehensive validation report based on NDRRMC standards
      * Uses getAllocations() to get the allocation data
-     * @return ValidationResult object with all validation metrics
+     * @return ValidationSingleResult object with all validation metrics
      */
-    public ValidationResult getValidationReport() {
-        ValidationResult result = new ValidationResult();
+    public ValidationSingleResult getValidationSingleReport() {
+        ValidationSingleResult result = new ValidationSingleResult();
 
         try {
             // Use the public getter instead of direct field access
@@ -474,9 +476,10 @@ public class FARunner {
                 return result;
             }
 
+            double totalPopulationScore = 0.0;
             double totalPopulationCloseness = 0.0;
             double totalHazardCloseness = 0.0;
-            double totalCombinedScore = 0.0;
+            double totalCombinedCloseness = 0.0;
             int validBarangays = 0;
 
             // Process each barangay from getAllocations()
@@ -493,18 +496,18 @@ public class FARunner {
                         data.barangayIds[i], data.barangayNames[i], (long) population, hazardLevel);
 
                 // 1. POPULATION-BASED VALIDATION (1:500 baseline)
-                double idealResponders = population / 500.0;
-                double actualResponders = allocation.total;
-                bv.populationCloseness = roundToPercent((actualResponders / idealResponders) * 100);
+                long idealResponders = Math.round(population / 500);
+                long actualResponders = allocation.total;
+                bv.populationCloseness = roundToPercent(((double) actualResponders / idealResponders));
 
                 // 2. HAZARD-BASED SAR/EMS VALIDATION
                 double[] idealRatios = getIdealSARRatio(hazardLevel);
-                double idealSAR = idealResponders * idealRatios[0];
-                double idealEMS = idealResponders * idealRatios[1];
+                long idealSAR = Math.round(idealResponders * idealRatios[0]);
+                long idealEMS = Math.round(idealResponders * idealRatios[1]);
 
-                bv.idealTotal = Math.round(idealResponders);
-                bv.idealSAR = Math.round(idealSAR);
-                bv.idealEMS = Math.round(idealEMS);
+                bv.idealTotal = idealResponders;
+                bv.idealSAR = idealSAR;
+                bv.idealEMS = idealEMS;
 
                 // Get actual SAR and EMS from allocation
                 long actualSAR = allocation.personnel.getOrDefault("SAR", 0L);
@@ -514,36 +517,41 @@ public class FARunner {
                 bv.actualSAR = actualSAR;
                 bv.actualEMS = actualEMS;
 
-                // Calculate SAR closeness
-                double sarCloseness = (idealSAR > 0) ? (actualSAR / idealSAR) * 100 : 100;
+                double sarCloseness = (idealSAR > 0) ? ((double) actualSAR / idealSAR) : 1.0;
+                double emsCloseness = (idealEMS > 0) ? ((double) actualEMS / idealEMS) : 1.0;
+
                 bv.sarCloseness = roundToPercent(sarCloseness);
-
-                // Calculate EMS closeness
-                double emsCloseness = (idealEMS > 0) ? (actualEMS / idealEMS) * 100 : 100;
                 bv.emsCloseness = roundToPercent(emsCloseness);
+                bv.hazardCloseness = roundToPercent((sarCloseness + emsCloseness) / 2.0);
 
-                bv.hazardCloseness = roundToPercent((sarCloseness + emsCloseness) / 2.0 * 100);
+                // 3. COMBINED CLOSENESS (50% population + 50% hazard)
+                double combinedCloseness = (bv.populationCloseness + bv.hazardCloseness) / 2.0;
+                bv.combinedCloseness = roundToPercent(combinedCloseness);
 
-                // 3. COMBINED SCORE (50% population + 50% hazard)
-                double combinedScore = (bv.populationCloseness + bv.hazardCloseness) / 2.0;
-                bv.combinedScore = roundToPercent(combinedScore);
+                // 4. POPULATION SCORE
+                bv.populationScore = getPopulationScore(data.populations[i], bv.actualTotal);
 
                 result.barangayValidations.add(bv);
 
                 // Accumulate for overall statistics
+                totalPopulationScore += bv.populationScore;
                 totalPopulationCloseness += bv.populationCloseness;
                 totalHazardCloseness += bv.hazardCloseness;
-                totalCombinedScore += bv.combinedScore;
+                totalCombinedCloseness += bv.combinedCloseness;
                 validBarangays++;
             }
+            Log.info("Total population closeness: %f", totalPopulationCloseness);
+            Log.info("Total hazard closeness: %f", totalHazardCloseness);
+            Log.info("Total combined closeness: %f", totalCombinedCloseness);
 
             // Calculate overall statistics
             if (validBarangays > 0) {
                 result.overallStats = new OverallStats(
                         validBarangays,
+                        roundToPercent(totalPopulationScore / validBarangays),
                         roundToPercent(totalPopulationCloseness / validBarangays),
                         roundToPercent(totalHazardCloseness / validBarangays),
-                        roundToPercent(totalCombinedScore / validBarangays));
+                        roundToPercent(totalCombinedCloseness / validBarangays));
                 result.interpretation = result.generateSingleRunInterpretation();
             }
 
@@ -555,6 +563,10 @@ public class FARunner {
         return result;
     }
 
+    public ValidationMultipleResult getValidationMultipleReport() {
+        ValidationMultipleResult result = new ValidationMultipleResult();
+        return result;
+    }
     // ========== CONTROL ==========
 
     public void stop() {
@@ -585,13 +597,13 @@ public class FARunner {
 
     // ========== HELPER CLASSES ==========
     private String determineHazardLevel(Data data, int barangayIndex) {
-        // Determine hazard level based on risk score
-        // You can modify this to use actual hazard data if available
-        double riskScore = data.r[barangayIndex];
+        double depth = data.f[barangayIndex]; // flood depth in ft
 
-        if (riskScore >= 0.7) return "High";
-        if (riskScore >= 0.4) return "Medium";
-        return "Low";
+        if (depth > 4.92126) return "High"; // >1.5 m
+        if (depth > 1.64042) return "Medium"; // 0.5 m – 1.5 m
+        if (depth >= 0.656168) return "Low"; // 0.2 m – 0.5 m
+
+        return "Medium"; // fallback for depth < 0.656168 ft (<0.2 m)
     }
 
     private double[] getIdealSARRatio(String hazardLevel) {
@@ -606,6 +618,19 @@ public class FARunner {
             default:
                 return new double[] {0.75, 0.25}; // Default to medium
         }
+    }
+
+    private int getPopulationScore(double population, long actualTotalResponders) {
+        if (actualTotalResponders == 0) return 0;
+
+        double peoplePerResponder = (double) population / actualTotalResponders;
+
+        // Score based on ratio (lower ratio = more responders = better)
+        if (peoplePerResponder <= 500) return 4; // 1:500 or better
+        else if (peoplePerResponder <= 1000) return 3; // 1:1000 or better
+        else if (peoplePerResponder <= 2000) return 2; // 1:2000 or better
+        else if (peoplePerResponder <= 3000) return 1; // 1:3000 or better
+        else return 0; // Worse than 1:3000
     }
 
     private double roundToPercent(double value) {

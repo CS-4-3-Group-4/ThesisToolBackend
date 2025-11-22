@@ -168,6 +168,10 @@ public class Log {
         log(Level.INFO, msg);
     }
 
+    public static void info(String msg, boolean condition) {
+        if (condition) log(Level.INFO, msg);
+    }
+
     /** Logs a formatted info message. */
     public static void info(String fmt, Object... args) {
         logf(Level.INFO, fmt, args);

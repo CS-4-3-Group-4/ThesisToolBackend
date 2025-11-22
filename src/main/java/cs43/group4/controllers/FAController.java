@@ -205,7 +205,7 @@ public class FAController {
                         "error", "Validation report not available for multiple runs",
                         "suggestion", "Only available for single runs"));
             } else {
-                ctx.json(Map.of("validationReport", runner.getValidationReport()));
+                ctx.json(Map.of("validationReport", runner.getValidationSingleReport()));
             }
         }
     }
