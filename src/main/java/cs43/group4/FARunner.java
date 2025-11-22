@@ -15,8 +15,8 @@ import cs43.group4.utils.IterationResult;
 import cs43.group4.utils.Log;
 import cs43.group4.utils.OverallStats;
 import cs43.group4.utils.ValidationMultipleResult;
+import cs43.group4.utils.ValidationMultipleResult.PerBarangayMultiStats;
 import cs43.group4.utils.ValidationSingleResult;
-import cs43.group4.utils.ValidationSingleResult.BarangayValidation;
 import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -298,6 +298,19 @@ public class FARunner {
             // System.out.println(line());
             // System.out.println();
         } else {
+            var flow = (data.lat != null && data.lon != null)
+                    ? FlowAllocator.allocate(A, currentPerClass, data.lat, data.lon)
+                    : FlowAllocator.allocate(A, currentPerClass);
+
+            allocations.clear();
+            allocations.addAll(createAllocations(A, data));
+
+            // Generate validation for this run
+            ValidationSingleResult validation = generateValidation(data, allocations);
+            if (!validation.hasError()) {
+                multipleValidationResults.add(validation);
+            }
+
             // For multiple runs, just store minimal results
             results = Map.of(
                     "fitnessMaximization",
@@ -451,26 +464,15 @@ public class FARunner {
         return new ArrayList<>(iterationHistory);
     }
 
-    /**
-     * Generates a comprehensive validation report based on NDRRMC standards
-     * Uses getAllocations() to get the allocation data
-     * @return ValidationSingleResult object with all validation metrics
-     */
-    public ValidationSingleResult getValidationSingleReport() {
+    private ValidationSingleResult generateValidation(Data data, List<AllocationResult> currentAllocations) {
         ValidationSingleResult result = new ValidationSingleResult();
 
         try {
-            // Use the public getter instead of direct field access
-            List<AllocationResult> currentAllocations = getAllocations();
-
             if (currentAllocations.isEmpty()) {
                 result.error = "No allocations available for validation";
                 return result;
             }
 
-            var data = DataLoader.load(Path.of("data", "barangays.csv"), Path.of("data", "classes.csv"));
-
-            // Check if population data is available
             if (data.populations == null) {
                 result.error = "Population data not available for validation";
                 return result;
@@ -482,25 +484,22 @@ public class FARunner {
             double totalCombinedCloseness = 0.0;
             int validBarangays = 0;
 
-            // Process each barangay from getAllocations()
             for (int i = 0; i < Math.min(currentAllocations.size(), data.Z); i++) {
                 AllocationResult allocation = currentAllocations.get(i);
                 double population = data.populations[i];
 
-                // Skip if population is invalid
                 if (population <= 0) continue;
 
-                // Create barangay validation object
                 String hazardLevel = determineHazardLevel(data, i);
-                BarangayValidation bv = new BarangayValidation(
+                ValidationSingleResult.BarangayValidation bv = new ValidationSingleResult.BarangayValidation(
                         data.barangayIds[i], data.barangayNames[i], (long) population, hazardLevel);
 
-                // 1. POPULATION-BASED VALIDATION (1:500 baseline)
+                // Population-based validation
                 long idealResponders = Math.round(population / 500);
                 long actualResponders = allocation.total;
                 bv.populationCloseness = roundToPercent(((double) actualResponders / idealResponders));
 
-                // 2. HAZARD-BASED SAR/EMS VALIDATION
+                // Hazard-based validation
                 double[] idealRatios = getIdealSARRatio(hazardLevel);
                 long idealSAR = Math.round(idealResponders * idealRatios[0]);
                 long idealEMS = Math.round(idealResponders * idealRatios[1]);
@@ -509,7 +508,6 @@ public class FARunner {
                 bv.idealSAR = idealSAR;
                 bv.idealEMS = idealEMS;
 
-                // Get actual SAR and EMS from allocation
                 long actualSAR = allocation.personnel.getOrDefault("SAR", 0L);
                 long actualEMS = allocation.personnel.getOrDefault("EMS", 0L);
 
@@ -524,27 +522,20 @@ public class FARunner {
                 bv.emsCloseness = roundToPercent(emsCloseness);
                 bv.hazardCloseness = roundToPercent((sarCloseness + emsCloseness) / 2.0);
 
-                // 3. COMBINED CLOSENESS (50% population + 50% hazard)
                 double combinedCloseness = (bv.populationCloseness + bv.hazardCloseness) / 2.0;
                 bv.combinedCloseness = roundToPercent(combinedCloseness);
 
-                // 4. POPULATION SCORE
                 bv.populationScore = getPopulationScore(data.populations[i], bv.actualTotal);
 
                 result.barangayValidations.add(bv);
 
-                // Accumulate for overall statistics
                 totalPopulationScore += bv.populationScore;
                 totalPopulationCloseness += bv.populationCloseness;
                 totalHazardCloseness += bv.hazardCloseness;
                 totalCombinedCloseness += bv.combinedCloseness;
                 validBarangays++;
             }
-            Log.info("Total population closeness: %f", totalPopulationCloseness);
-            Log.info("Total hazard closeness: %f", totalHazardCloseness);
-            Log.info("Total combined closeness: %f", totalCombinedCloseness);
 
-            // Calculate overall statistics
             if (validBarangays > 0) {
                 result.overallStats = new OverallStats(
                         validBarangays,
@@ -552,7 +543,6 @@ public class FARunner {
                         roundToPercent(totalPopulationCloseness / validBarangays),
                         roundToPercent(totalHazardCloseness / validBarangays),
                         roundToPercent(totalCombinedCloseness / validBarangays));
-                result.interpretation = result.generateSingleRunInterpretation();
             }
 
         } catch (Exception e) {
@@ -563,10 +553,227 @@ public class FARunner {
         return result;
     }
 
+    /**
+     * Generates a comprehensive validation report based on NDRRMC standards
+     * Uses getAllocations() to get the allocation data
+     * @return ValidationSingleResult object with all validation metrics
+     */
+    public ValidationSingleResult getValidationSingleReport() {
+        try {
+            List<AllocationResult> currentAllocations = getAllocations();
+            if (currentAllocations.isEmpty()) {
+                ValidationSingleResult result = new ValidationSingleResult();
+                result.error = "No allocations available for validation";
+                return result;
+            }
+
+            var data = DataLoader.load(Path.of("data", "barangays.csv"), Path.of("data", "classes.csv"));
+            ValidationSingleResult result = generateValidation(data, currentAllocations);
+
+            if (result.overallStats != null) {
+                result.interpretation = result.generateSingleRunInterpretation();
+            }
+
+            return result;
+
+        } catch (Exception e) {
+            ValidationSingleResult result = new ValidationSingleResult();
+            result.error = "Validation error: " + e.getMessage();
+            Log.error("Validation error: %s", e.getMessage(), e);
+            return result;
+        }
+    }
+
     public ValidationMultipleResult getValidationMultipleReport() {
         ValidationMultipleResult result = new ValidationMultipleResult();
+
+        if (multipleValidationResults.isEmpty()) {
+            return result; // Return empty result if no validation data
+        }
+
+        // Collect overall stats from each run
+        List<Double> populationClosenessList = new ArrayList<>();
+        List<Double> sarClosenessList = new ArrayList<>();
+        List<Double> emsClosenessList = new ArrayList<>();
+        List<Double> hazardClosenessList = new ArrayList<>();
+        List<Double> combinedClosenessList = new ArrayList<>();
+        List<Double> populationScoreList = new ArrayList<>();
+
+        for (ValidationSingleResult run : multipleValidationResults) {
+            if (run.overallStats != null) {
+                populationClosenessList.add(run.overallStats.averagePopulationCloseness);
+                hazardClosenessList.add(run.overallStats.averageHazardCloseness);
+                combinedClosenessList.add(run.overallStats.averageCombinedCloseness);
+                populationScoreList.add(run.overallStats.averagePopulationScore);
+            }
+
+            if (!run.barangayValidations.isEmpty()) {
+                double totalSar = 0.0;
+                double totalEms = 0.0;
+                int count = 0;
+
+                for (ValidationSingleResult.BarangayValidation bv : run.barangayValidations) {
+                    totalSar += bv.sarCloseness;
+                    totalEms += bv.emsCloseness;
+                    count++;
+                }
+
+                if (count > 0) {
+                    sarClosenessList.add(totalSar / count);
+                    emsClosenessList.add(totalEms / count);
+                }
+            }
+        }
+
+        if (populationClosenessList.isEmpty()) {
+            return result; // No valid data
+        }
+
+        // Calculate mean
+        result.meanPopulationCloseness = calculateMean(populationClosenessList);
+        result.meanSarCloseness = calculateMean(sarClosenessList);
+        result.meanEmsCloseness = calculateMean(emsClosenessList);
+        result.meanHazardCloseness = calculateMean(hazardClosenessList);
+        result.meanCombinedCloseness = calculateMean(combinedClosenessList);
+        result.meanPopulationScore = calculateMean(populationScoreList);
+
+        // Calculate std dev
+        result.stdPopulationCloseness = calculateStdDev(populationClosenessList, result.meanPopulationCloseness);
+        result.stdSarCloseness = calculateStdDev(sarClosenessList, result.meanSarCloseness);
+        result.stdEmsCloseness = calculateStdDev(emsClosenessList, result.meanEmsCloseness);
+        result.stdHazardCloseness = calculateStdDev(hazardClosenessList, result.meanHazardCloseness);
+        result.stdCombinedCloseness = calculateStdDev(combinedClosenessList, result.meanCombinedCloseness);
+        result.stdPopulationScore = calculateStdDev(populationScoreList, result.meanPopulationScore);
+
+        // Calculate min/max
+        result.minPopulationCloseness =
+                populationClosenessList.stream().min(Double::compare).orElse(0.0);
+        result.minSarCloseness = sarClosenessList.stream().min(Double::compare).orElse(0.0);
+        result.minEmsCloseness = emsClosenessList.stream().min(Double::compare).orElse(0.0);
+        result.minHazardCloseness =
+                hazardClosenessList.stream().min(Double::compare).orElse(0.0);
+        result.minCombinedCloseness =
+                combinedClosenessList.stream().min(Double::compare).orElse(0.0);
+        result.minPopulationScore =
+                populationScoreList.stream().min(Double::compare).orElse(0.0);
+
+        result.maxPopulationCloseness =
+                populationClosenessList.stream().max(Double::compare).orElse(0.0);
+        result.maxSarCloseness = sarClosenessList.stream().max(Double::compare).orElse(0.0);
+        result.maxEmsCloseness = emsClosenessList.stream().max(Double::compare).orElse(0.0);
+        result.maxHazardCloseness =
+                hazardClosenessList.stream().max(Double::compare).orElse(0.0);
+        result.maxCombinedCloseness =
+                combinedClosenessList.stream().max(Double::compare).orElse(0.0);
+        result.maxPopulationScore =
+                populationScoreList.stream().max(Double::compare).orElse(0.0);
+
+        // Calculate coefficient of variation
+        result.cvPopulationCloseness = (result.meanPopulationCloseness != 0)
+                ? result.stdPopulationCloseness / result.meanPopulationCloseness
+                : 0.0;
+        result.cvSarCloseness = (result.meanSarCloseness != 0) ? result.stdSarCloseness / result.meanSarCloseness : 0.0;
+        result.cvEmsCloseness = (result.meanEmsCloseness != 0) ? result.stdEmsCloseness / result.meanEmsCloseness : 0.0;
+        result.cvHazardCloseness =
+                (result.meanHazardCloseness != 0) ? result.stdHazardCloseness / result.meanHazardCloseness : 0.0;
+        result.cvCombinedCloseness =
+                (result.meanCombinedCloseness != 0) ? result.stdCombinedCloseness / result.meanCombinedCloseness : 0.0;
+        result.cvPopulationScore =
+                (result.meanPopulationScore != 0) ? result.stdPopulationScore / result.meanPopulationScore : 0.0;
+
+        // Store individual runs
+        result.individualRuns = new ArrayList<>(multipleValidationResults);
+
+        result.perBarangayStats = calculatePerBarangayStats(multipleValidationResults);
+
         return result;
     }
+
+    private List<ValidationMultipleResult.PerBarangayMultiStats> calculatePerBarangayStats(
+            List<ValidationSingleResult> validationResults) {
+
+        if (validationResults.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // Get the first run to determine barangay list
+        ValidationSingleResult firstRun = validationResults.get(0);
+        if (firstRun.barangayValidations.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        int numBarangays = firstRun.barangayValidations.size();
+        List<PerBarangayMultiStats> perBarangayStats = new ArrayList<>();
+
+        // For each barangay
+        for (int i = 0; i < numBarangays; i++) {
+            // Collect data across all runs for this barangay
+            List<Double> populationCloseness = new ArrayList<>();
+            List<Double> sarCloseness = new ArrayList<>();
+            List<Double> emsCloseness = new ArrayList<>();
+            List<Double> hazardCloseness = new ArrayList<>();
+            List<Double> combinedCloseness = new ArrayList<>();
+
+            String barangayId = null;
+            String barangayName = null;
+
+            for (ValidationSingleResult run : validationResults) {
+                if (i < run.barangayValidations.size()) {
+                    ValidationSingleResult.BarangayValidation bv = run.barangayValidations.get(i);
+
+                    // Capture ID and name from first valid run
+                    if (barangayId == null) {
+                        barangayId = bv.barangayId;
+                        barangayName = bv.barangayName;
+                    }
+
+                    populationCloseness.add(bv.populationCloseness);
+                    sarCloseness.add(bv.sarCloseness);
+                    emsCloseness.add(bv.emsCloseness);
+                    hazardCloseness.add(bv.hazardCloseness);
+                    combinedCloseness.add(bv.combinedCloseness);
+                }
+            }
+
+            if (barangayId != null && !populationCloseness.isEmpty()) {
+                ValidationMultipleResult.PerBarangayMultiStats stats =
+                        new ValidationMultipleResult.PerBarangayMultiStats(barangayId, barangayName);
+
+                // Calculate mean and std dev for each metric
+                stats.meanPopulationCloseness = calculateMean(populationCloseness);
+                stats.stdPopulationCloseness = calculateStdDev(populationCloseness, stats.meanPopulationCloseness);
+                stats.cvPopulationCloseness = (stats.meanPopulationCloseness != 0)
+                        ? stats.stdPopulationCloseness / stats.meanPopulationCloseness
+                        : 0.0;
+
+                stats.meanSarCloseness = calculateMean(sarCloseness);
+                stats.stdSarCloseness = calculateStdDev(sarCloseness, stats.meanSarCloseness);
+                stats.cvSarCloseness =
+                        (stats.meanSarCloseness != 0) ? stats.stdSarCloseness / stats.meanSarCloseness : 0.0;
+
+                stats.meanEmsCloseness = calculateMean(emsCloseness);
+                stats.stdEmsCloseness = calculateStdDev(emsCloseness, stats.meanEmsCloseness);
+                stats.cvEmsCloseness =
+                        (stats.meanEmsCloseness != 0) ? stats.stdEmsCloseness / stats.meanEmsCloseness : 0.0;
+
+                stats.meanHazardCloseness = calculateMean(hazardCloseness);
+                stats.stdHazardCloseness = calculateStdDev(hazardCloseness, stats.meanHazardCloseness);
+                stats.cvHazardCloseness =
+                        (stats.meanHazardCloseness != 0) ? stats.stdHazardCloseness / stats.meanHazardCloseness : 0.0;
+
+                stats.meanCombinedCloseness = calculateMean(combinedCloseness);
+                stats.stdCombinedCloseness = calculateStdDev(combinedCloseness, stats.meanCombinedCloseness);
+                stats.cvCombinedCloseness = (stats.meanCombinedCloseness != 0)
+                        ? stats.stdCombinedCloseness / stats.meanCombinedCloseness
+                        : 0.0;
+
+                perBarangayStats.add(stats);
+            }
+        }
+
+        return perBarangayStats;
+    }
+
     // ========== CONTROL ==========
 
     public void stop() {
@@ -637,8 +844,10 @@ public class FARunner {
         return Math.round(value * 100.0) / 100.0;
     }
 
+    // Calculate sample standard deviation
     private double calculateStdDev(List<Double> values, double mean) {
-        if (values.size() <= 1) return 0.0;
+        int n = values.size();
+        if (n <= 1) return 0.0;
 
         double sumSquaredDiff = 0.0;
         for (double value : values) {
@@ -646,7 +855,7 @@ public class FARunner {
             sumSquaredDiff += diff * diff;
         }
 
-        return Math.sqrt(sumSquaredDiff / values.size());
+        return Math.sqrt(sumSquaredDiff / (n - 1));
     }
 
     private static class RunResult {
@@ -705,6 +914,11 @@ public class FARunner {
     }
 
     // ========== UTILITY METHODS (unchanged) ==========
+
+    private double calculateMean(List<Double> values) {
+        if (values.isEmpty()) return 0.0;
+        return values.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+    }
 
     @SuppressWarnings("unused")
     private static void writeAllocationsCsv(double[][] A, Data data, Path path) {

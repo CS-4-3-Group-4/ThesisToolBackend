@@ -201,10 +201,10 @@ public class FAController {
         } else {
             Map<String, Object> status = runner.getStatus();
             if ("multiple".equals(status.get("mode"))) {
-                ctx.json(Map.of(
-                        "error", "Validation report not available for multiple runs",
-                        "suggestion", "Only available for single runs"));
+                // For multiple runs, return the multiple validation report
+                ctx.json(Map.of("validationReport", runner.getValidationMultipleReport()));
             } else {
+                // For single run, return the single validation report
                 ctx.json(Map.of("validationReport", runner.getValidationSingleReport()));
             }
         }
