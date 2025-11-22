@@ -44,15 +44,15 @@ public class Main {
         Log.info("");
         Log.info("    Single Run:");
         Log.info("      POST /fa/single/run                    - Start single run");
+        Log.info("      GET  /fa/single/validation             - Get single validation report");
         Log.info("");
         Log.info("    Multiple Runs:");
         Log.info("      POST /fa/multiple/run?runs=N           - Start N runs (2-100)");
+        Log.info("      GET  /fa/multiple/validation             - Get multiple validation report");
         Log.info("");
         Log.info("    Data:");
         Log.info("      GET  /fa/allocations                   - Get allocation details");
         Log.info("      GET  /fa/flows                         - Get flow details");
-        Log.info(" Validation Report:");
-        Log.info("      GET  /fa/validation                    - Get validation report");
         Log.info("");
         Log.info("");
         Log.info("  EFA Algorithm:");
@@ -64,15 +64,15 @@ public class Main {
         Log.info("");
         Log.info("    Single Run:");
         Log.info("      POST /efa/single/run                   - Start single run");
+        Log.info("      GET  /efa/single/validation            - Get single validation report");
         Log.info("");
         Log.info("    Multiple Runs:");
         Log.info("      POST /efa/multiple/run?runs=N          - Start N runs (2-100)");
+        Log.info("      GET  /efa/multiple/validation           - Get multiple validation report");
         Log.info("");
         Log.info("    Data:");
         Log.info("      GET  /efa/allocations                  - Get allocation details");
         Log.info("      GET  /efa/flows                        - Get flow details");
-        Log.info(" Validation Report:");
-        Log.info("      GET  /efa/validation                   - Get validation report");
         Log.info("═══════════════════════════════════════════════════════════");
 
         app.get("/data/barangays", dataController::getBarangays);
@@ -87,16 +87,15 @@ public class Main {
 
         // Single run
         app.post("/fa/single/run", faController::postSingleRun);
+        app.get("/fa/single/validation", faController::getValidationReportSingle);
 
         // Multiple runs
         app.post("/fa/multiple/run", faController::postMultipleRun);
+        app.get("/fa/multiple/validation", faController::getValidationReportMultiple);
 
         // Data endpoints (single run only)
         app.get("/fa/allocations", faController::getAllocations);
         app.get("/fa/flows", faController::getFlows);
-
-        // Validation report
-        app.get("/fa/validation", faController::getValidationReport);
 
         // ========== EFA ENDPOINTS ==========
 
@@ -115,8 +114,5 @@ public class Main {
         // Data endpoints (single run only)
         app.get("/efa/allocations", efaController::getAllocations);
         app.get("/efa/flows", efaController::getFlows);
-
-        // Validation report
-        // app.get("/efa/validation", efaController::getValidationReport);
     }
 }

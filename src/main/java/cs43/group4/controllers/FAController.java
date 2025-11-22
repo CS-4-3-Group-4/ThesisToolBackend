@@ -191,7 +191,44 @@ public class FAController {
         }
     }
 
-    public void getValidationReport(Context ctx) {
+    // public void getValidationReport(Context ctx) {
+    //     Log.info("FA validation report requested");
+
+    //     if (runner == null) {
+    //         ctx.status(404).json(Map.of("error", "No algorithm has been run"));
+    //     } else if (runner.isRunning()) {
+    //         ctx.status(400).json(Map.of("error", "Algorithm still running"));
+    //     } else {
+    //         Map<String, Object> status = runner.getStatus();
+    //         if ("multiple".equals(status.get("mode"))) {
+    //             // For multiple runs, return the multiple validation report
+    //             ctx.json(Map.of("validationReport", runner.getValidationMultipleReport()));
+    //         } else {
+    //             // For single run, return the single validation report
+    //             ctx.json(Map.of("validationReport", runner.getValidationSingleReport()));
+    //         }
+    //     }
+    // }
+
+    public void getValidationReportSingle(Context ctx) {
+        Log.info("FA validation report requested");
+
+        if (runner == null) {
+            ctx.status(404).json(Map.of("error", "No algorithm has been run"));
+        } else if (runner.isRunning()) {
+            ctx.status(400).json(Map.of("error", "Algorithm still running"));
+        } else {
+            Map<String, Object> status = runner.getStatus();
+            if ("single".equals(status.get("mode"))) {
+                // For single run, return the single validation report
+                ctx.json(Map.of("validationReport", runner.getValidationSingleReport()));
+            } else {
+                ctx.status(400).json(Map.of("error", "Validation report not available for multiple runs for this endpoint"));
+            }
+        }
+    }
+
+    public void getValidationReportMultiple(Context ctx) {
         Log.info("FA validation report requested");
 
         if (runner == null) {
@@ -204,11 +241,11 @@ public class FAController {
                 // For multiple runs, return the multiple validation report
                 ctx.json(Map.of("validationReport", runner.getValidationMultipleReport()));
             } else {
-                // For single run, return the single validation report
-                ctx.json(Map.of("validationReport", runner.getValidationSingleReport()));
+                ctx.status(400).json(Map.of("error", "Validation report not available for single run for this endpoint"));
             }
         }
     }
+
 
     // ========== HELPER METHODS ==========
 
