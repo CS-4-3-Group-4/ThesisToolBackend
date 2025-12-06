@@ -69,11 +69,11 @@ public class ValidationSingleResult {
         }
 
         return String.format(
-                "Across %d barangays, the algorithm achieved an average compliance score of %.1f%% "
-                        + "relative to the Gawad KALASAG population-responder ratios and hazard-based SAR/EMS "
-                        + "distribution standards. This indicates %s alignment with national benchmarks.",
+                "Across %d barangays, the algorithm achieved an average population closeness of %.2f "
+                        + "relative to the Gawad KALASAG population-responder ratios (1:500 ideal baseline). "
+                        + "This indicates %s alignment with national benchmarks.",
                 overallStats.totalBarangays,
-                overallStats.averageCombinedCloseness,
+                overallStats.averagePopulationCloseness,
                 overallStats.getQualityRating().toLowerCase());
     }
 }

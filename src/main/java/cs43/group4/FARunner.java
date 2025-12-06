@@ -480,6 +480,8 @@ public class FARunner {
 
             double totalPopulationScore = 0.0;
             double totalPopulationCloseness = 0.0;
+            double totalSarCloseness = 0.0;
+            double totalEmsCloseness = 0.0;
             double totalHazardCloseness = 0.0;
             double totalCombinedCloseness = 0.0;
             int validBarangays = 0;
@@ -531,6 +533,8 @@ public class FARunner {
 
                 totalPopulationScore += bv.populationScore;
                 totalPopulationCloseness += bv.populationCloseness;
+                totalSarCloseness += bv.sarCloseness;
+                totalEmsCloseness += bv.emsCloseness;
                 totalHazardCloseness += bv.hazardCloseness;
                 totalCombinedCloseness += bv.combinedCloseness;
                 validBarangays++;
@@ -541,6 +545,8 @@ public class FARunner {
                         validBarangays,
                         roundToPercent(totalPopulationScore / validBarangays),
                         roundToPercent(totalPopulationCloseness / validBarangays),
+                        roundToPercent(totalSarCloseness / validBarangays),
+                        roundToPercent(totalEmsCloseness / validBarangays),
                         roundToPercent(totalHazardCloseness / validBarangays),
                         roundToPercent(totalCombinedCloseness / validBarangays));
             }
@@ -602,26 +608,11 @@ public class FARunner {
         for (ValidationSingleResult run : multipleValidationResults) {
             if (run.overallStats != null) {
                 populationClosenessList.add(run.overallStats.averagePopulationCloseness);
+                sarClosenessList.add(run.overallStats.averageSarCloseness);
+                emsClosenessList.add(run.overallStats.averageEmsCloseness);
                 hazardClosenessList.add(run.overallStats.averageHazardCloseness);
                 combinedClosenessList.add(run.overallStats.averageCombinedCloseness);
                 populationScoreList.add(run.overallStats.averagePopulationScore);
-            }
-
-            if (!run.barangayValidations.isEmpty()) {
-                double totalSar = 0.0;
-                double totalEms = 0.0;
-                int count = 0;
-
-                for (ValidationSingleResult.BarangayValidation bv : run.barangayValidations) {
-                    totalSar += bv.sarCloseness;
-                    totalEms += bv.emsCloseness;
-                    count++;
-                }
-
-                if (count > 0) {
-                    sarClosenessList.add(totalSar / count);
-                    emsClosenessList.add(totalEms / count);
-                }
             }
         }
 

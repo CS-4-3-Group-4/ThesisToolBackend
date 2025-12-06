@@ -223,7 +223,8 @@ public class FAController {
                 // For single run, return the single validation report
                 ctx.json(Map.of("validationReport", runner.getValidationSingleReport()));
             } else {
-                ctx.status(400).json(Map.of("error", "Validation report not available for multiple runs for this endpoint"));
+                ctx.status(400)
+                        .json(Map.of("error", "Validation report not available for multiple runs for this endpoint"));
             }
         }
     }
@@ -241,11 +242,11 @@ public class FAController {
                 // For multiple runs, return the multiple validation report
                 ctx.json(Map.of("validationReport", runner.getValidationMultipleReport()));
             } else {
-                ctx.status(400).json(Map.of("error", "Validation report not available for single run for this endpoint"));
+                ctx.status(400)
+                        .json(Map.of("error", "Validation report not available for single run for this endpoint"));
             }
         }
     }
-
 
     // ========== HELPER METHODS ==========
 
