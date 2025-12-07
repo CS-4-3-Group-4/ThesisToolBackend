@@ -107,9 +107,11 @@ public class Main {
 
         // Single run
         app.post("/efa/single/run", efaController::postSingleRun);
+        app.get("/efa/single/validation", efaController::getValidationReportSingle);
 
         // Multiple runs
         app.post("/efa/multiple/run", efaController::postMultipleRun);
+        app.get("/efa/multiple/validation", efaController::getValidationReportMultiple);
 
         // Data endpoints (single run only)
         app.get("/efa/allocations", efaController::getAllocations);
