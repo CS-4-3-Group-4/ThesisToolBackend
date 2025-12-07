@@ -298,9 +298,9 @@ public class FARunner {
             // System.out.println(line());
             // System.out.println();
         } else {
-            var flow = (data.lat != null && data.lon != null)
-                    ? FlowAllocator.allocate(A, currentPerClass, data.lat, data.lon)
-                    : FlowAllocator.allocate(A, currentPerClass);
+            // var flow = (data.lat != null && data.lon != null)
+            //         ? FlowAllocator.allocate(A, currentPerClass, data.lat, data.lon)
+            //         : FlowAllocator.allocate(A, currentPerClass);
 
             allocations.clear();
             allocations.addAll(createAllocations(A, data));

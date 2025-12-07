@@ -287,9 +287,9 @@ public class EFARunner {
                     "executionTimeMs", executionTime,
                     "memoryBytes", memoryUsage);
         } else {
-            var flow = (data.lat != null && data.lon != null)
-                    ? FlowAllocator.allocate(A, currentPerClass, data.lat, data.lon)
-                    : FlowAllocator.allocate(A, currentPerClass);
+            // var flow = (data.lat != null && data.lon != null)
+            //         ? FlowAllocator.allocate(A, currentPerClass, data.lat, data.lon)
+            //         : FlowAllocator.allocate(A, currentPerClass);
 
             allocations.clear();
             allocations.addAll(createAllocations(A, data));
