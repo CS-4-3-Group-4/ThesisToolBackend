@@ -8,8 +8,8 @@ public class ThesisObjective extends ObjectiveFunction {
 
     private final int Z, C; // barangays, classes
     private final double[] r, f, E, AC; // per barangay
-    private final double[] lambda; // per class
-    private final double[] supply; // per class (global totals)
+    private final double[] lambda; // per class (deprecated: kept for backward compatibility)
+    private final double[] supply; // per class (global totals); if null, derived from currentPerClass
     private final double eps; // small constant
     private final double wSupply; // penalty weight for supply violations
     private final Double Ptarget; // optional overall target (nullable)
@@ -104,12 +104,27 @@ public class ThesisObjective extends ObjectiveFunction {
             }
         }
 
+        // Determine per-class supply: prefer provided; else derive from currentPerClass sums
+        double[] supplyUse = new double[C];
+        if (this.supply != null) {
+            for (int c = 0; c < C; c++) supplyUse[c] = this.supply[c];
+        } else if (enableDistance()) {
+            for (int c = 0; c < C; c++) {
+                double s = 0.0;
+                for (int i = 0; i < Z; i++) s += Math.max(0.0, currentPerClass[c][i]);
+                supplyUse[c] = s;
+            }
+        } else {
+            // Fallback: no currentPerClass; treat as unconstrained
+            for (int c = 0; c < C; c++) supplyUse[c] = Double.POSITIVE_INFINITY;
+        }
+
         // Feasibility repair: scale down per-class columns if they exceed supply
         for (int c = 0; c < C; c++) {
             double used = 0.0;
             for (int i = 0; i < Z; i++) used += A[i][c];
-            if (used > supply[c] + eps) {
-                double scale = supply[c] / (used + eps);
+            if (used > supplyUse[c] + eps) {
+                double scale = supplyUse[c] / (used + eps);
                 for (int i = 0; i < Z; i++) A[i][c] *= scale;
             }
         }
@@ -154,8 +169,11 @@ public class ThesisObjective extends ObjectiveFunction {
         double obj4sum = 0.0;
         for (int i = 0; i < Z; i++) {
             double Si = Math.max(0.0, r[i]) * Math.max(0.0, f[i]);
+            // Derive SAR/EMS split ratios from hazard level for this barangay
+            double[] split = hazardSplitRatios(r[i]); // [SAR, EMS]
             for (int c = 0; c < C; c++) {
-                double DiC = lambda[c] * (E[i] * Si) / (AC[i] + eps);
+                double ratio = (c < split.length) ? split[c] : 1.0 / Math.max(1, C);
+                double DiC = ratio * (E[i] * Si) / (AC[i] + eps);
                 double denom = Math.max(DiC, eps);
                 double frac = Math.min(1.0, A[i][c] / denom);
                 obj4sum += frac;
@@ -171,7 +189,7 @@ public class ThesisObjective extends ObjectiveFunction {
         for (int c = 0; c < C; c++) {
             double used = 0.0;
             for (int i = 0; i < Z; i++) used += A[i][c];
-            double viol = Math.max(0.0, used - supply[c]);
+            double viol = Math.max(0.0, used - supplyUse[c]);
             penalty += wSupply * viol * viol;
         }
         // Total Budget Target
@@ -263,5 +281,14 @@ public class ThesisObjective extends ObjectiveFunction {
                         * Math.sin(dLon / 2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
+    }
+
+    // Hazard-based SAR/EMS split ratios per barangay.
+    // High: [0.85, 0.15]; Medium: [0.75, 0.25]; Low/default: [0.65, 0.35]
+    private static double[] hazardSplitRatios(double hazardLevel) {
+        double h = Double.isFinite(hazardLevel) ? hazardLevel : 1.0;
+        if (h >= 2.5) return new double[] {0.85, 0.15};
+        if (h >= 1.5) return new double[] {0.75, 0.25};
+        return new double[] {0.65, 0.35};
     }
 }

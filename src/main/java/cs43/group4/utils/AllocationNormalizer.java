@@ -3,8 +3,8 @@ package cs43.group4.utils;
 import java.util.Arrays;
 
 /**
- * Utility to convert continuous allocation matrices into integer allocations
- * while ensuring per-class totals do not exceed the supplies loaded from classes.csv.
+ * Utility to convert continuous allocation matrices into integer allocations while ensuring
+ * per-class totals do not exceed the derived supply totals (from barangays.csv).
  */
 public final class AllocationNormalizer {
 

@@ -4,7 +4,7 @@ package cs43.group4.core;
  * Simple post-processing allocator to map borrowing flows between barangays. For each class c,
  * builds flows so that each barangay uses its own personnel first (self-flows), then borrows from
  * others when needed. Totals per class match the requested allocations exactly (which are already
- * normalized to match classes.csv supply), and self-allocations (i -> i) are included.
+ * normalized to match per-class supply totals), and self-allocations (i -> i) are included.
  */
 public final class FlowAllocator {
 

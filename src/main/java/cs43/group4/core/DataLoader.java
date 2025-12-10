@@ -8,8 +8,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * CSV loader for thesis data. - Reads data/barangays.csv and data/classes.csv - Handles optional
- * columns and derives exposure/AC when missing
+ * CSV loader for thesis data.
+ * - Reads data/barangays.csv
+ * - Derives classes (SAR/EMS), per-class supply, and handles optional columns
+ * - Derives exposure/AC when missing
  */
 public final class DataLoader {
 
@@ -77,32 +79,22 @@ public final class DataLoader {
         return parts;
     }
 
-    public static Data load(Path barangaysCsv, Path classesCsv) throws IOException {
+    public static Data load(Path barangaysCsv) throws IOException {
         List<String> bLines = Files.readAllLines(barangaysCsv, StandardCharsets.UTF_8);
-        List<String> cLines = Files.readAllLines(classesCsv, StandardCharsets.UTF_8);
-
-        if (bLines.isEmpty() || cLines.isEmpty()) {
-            throw new IOException("Empty CSV file(s)");
+        if (bLines.isEmpty()) {
+            throw new IOException("Empty CSV file: barangays.csv");
         }
 
-        // Parse classes
-        String[] cHeader = splitCsv(cLines.get(0));
-        int idxClassId = indexOf(cHeader, "class_id");
-        int idxClassName = indexOf(cHeader, "class_name");
-        int idxLambda = indexOf(cHeader, "lambda");
-        int idxSupply = indexOf(cHeader, "supply");
+        // Deprecated: classes.csv is no longer used. Define classes here.
         List<String> classIds = new ArrayList<>();
         List<String> classNames = new ArrayList<>();
-        List<Double> lambda = new ArrayList<>();
-        List<Double> supply = new ArrayList<>();
-        for (int i = 1; i < cLines.size(); i++) {
-            if (cLines.get(i).isBlank()) continue;
-            String[] row = splitCsv(cLines.get(i));
-            classIds.add(get(row, idxClassId));
-            classNames.add(get(row, idxClassName));
-            lambda.add(parseDoubleSafe(get(row, idxLambda), 1.0));
-            supply.add(parseDoubleSafe(get(row, idxSupply), 0.0));
-        }
+        List<Double> lambda = new ArrayList<>(); // retained for backward compatibility
+        classIds.add("SAR");
+        classNames.add("SAR");
+        lambda.add(0.75);
+        classIds.add("EMS");
+        classNames.add("EMS");
+        lambda.add(0.25);
         int C = classIds.size();
 
         // Parse barangays
@@ -227,6 +219,27 @@ public final class DataLoader {
             }
         }
 
+        // Derive per-class supply from current counts if available, else estimate from AC and hazard
+        double sarSupply = 0.0;
+        double emsSupply = 0.0;
+        boolean hasCurrent = false;
+        for (int i = 0; i < Z; i++) {
+            if (sarCur.get(i) != null && emsCur.get(i) != null) {
+                hasCurrent = true;
+                sarSupply += Math.max(0.0, sarCurrentArr[i]);
+                emsSupply += Math.max(0.0, emsCurrentArr[i]);
+            }
+        }
+        if (!hasCurrent) {
+            for (int i = 0; i < Z; i++) {
+                double[] split = hazardSplitRatios(rArr[i]);
+                double ac = Math.max(0.0, AC[i]);
+                sarSupply += ac * split[0];
+                emsSupply += ac * split[1];
+            }
+        }
+        double[] supplyArr = new double[] {sarSupply, emsSupply};
+
         return new Data(
                 Z,
                 C,
@@ -244,7 +257,7 @@ public final class DataLoader {
                 classIds.toArray(new String[classIds.size()]),
                 classNames.toArray(new String[classNames.size()]),
                 toPrimitive(lambda, 1.0),
-                toPrimitive(supply, 0.0));
+                supplyArr);
     }
 
     private static int indexOf(String[] arr, String key) throws IOException {

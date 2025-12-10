@@ -1,6 +1,17 @@
 package cs43.group4;
 
+import java.lang.management.ManagementFactory;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.DoubleSummaryStatistics;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import com.sun.management.ThreadMXBean;
+
 import cs43.group4.core.DataLoader;
 import cs43.group4.core.DataLoader.Data;
 import cs43.group4.core.FireflyAlgorithm;
@@ -17,15 +28,6 @@ import cs43.group4.utils.OverallStats;
 import cs43.group4.utils.ValidationMultipleResult;
 import cs43.group4.utils.ValidationMultipleResult.PerBarangayMultiStats;
 import cs43.group4.utils.ValidationSingleResult;
-import java.lang.management.ManagementFactory;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.DoubleSummaryStatistics;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class FARunner {
     private final FAParams params;
@@ -148,7 +150,7 @@ public class FARunner {
     // ========== SHARED EXECUTION LOGIC ==========
 
     private void executeSingleRun() throws Exception {
-        var data = DataLoader.load(Path.of("data", "barangays.csv"), Path.of("data", "classes.csv"));
+        var data = DataLoader.load(Path.of("data", "barangays.csv"));
         int Z = data.Z, C = data.C;
         int D = Z * C;
 
@@ -573,7 +575,7 @@ public class FARunner {
                 return result;
             }
 
-            var data = DataLoader.load(Path.of("data", "barangays.csv"), Path.of("data", "classes.csv"));
+            var data = DataLoader.load(Path.of("data", "barangays.csv"));
             ValidationSingleResult result = generateValidation(data, currentAllocations);
 
             if (result.overallStats != null) {
