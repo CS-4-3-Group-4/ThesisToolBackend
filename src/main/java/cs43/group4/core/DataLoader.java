@@ -11,7 +11,7 @@ import java.util.List;
  * CSV loader for thesis data.
  * - Reads data/barangays.csv
  * - Derives classes (SAR/EMS), per-class supply, and handles optional columns
- * - Derives exposure/AC when missing
+ * - Derives vulnerability index / AC when missing
  */
 public final class DataLoader {
 
@@ -23,7 +23,7 @@ public final class DataLoader {
         public final double[] populations; // per barangay
         public final double[] r; // hazard 1..3
         public final double[] f; // flood depth (ft)
-        public final double[] E; // exposure
+        public final double[] E; // vulnerability_index (DP)
         public final double[] AC; // adaptive capacity (total personnel in barangay)
         public final double[] sarCurrent; // optional per-barangay current SAR
         public final double[] emsCurrent; // optional per-barangay current EMS
@@ -104,7 +104,9 @@ public final class DataLoader {
         int idxHazardText = indexOf(bHeader, "hazard_level_text");
         int idxDepthFt = indexOf(bHeader, "flood_depth_ft");
         int idxPopulation = indexOf(bHeader, "population");
-        int idxExposure = indexOf(bHeader, "exposure");
+        // Support new column name; fallback to legacy 'exposure'
+        int idxExposure = indexOfOptional(bHeader, "vulnerability_index");
+        if (idxExposure < 0) idxExposure = indexOf(bHeader, "exposure");
         int idxTotalPersonnel = indexOf(bHeader, "total_personnel");
         int idxSarCurrent = indexOfOptional(bHeader, "sar_current");
         int idxEmsCurrent = indexOfOptional(bHeader, "ems_current");
@@ -119,7 +121,7 @@ public final class DataLoader {
         List<Double> r = new ArrayList<>();
         List<Double> f = new ArrayList<>();
         List<Double> population = new ArrayList<>();
-        List<Double> exposure = new ArrayList<>();
+        List<Double> vulnerabilityIndex = new ArrayList<>();
         List<Double> totalPersonnel = new ArrayList<>();
         List<Double> sarCur = new ArrayList<>();
         List<Double> emsCur = new ArrayList<>();
@@ -135,7 +137,7 @@ public final class DataLoader {
             r.add(hazardTextToLevel(get(row, idxHazardText)));
             f.add(parseDoubleSafe(get(row, idxDepthFt), 0.0));
             population.add(parseDoubleNullable(get(row, idxPopulation)));
-            exposure.add(parseDoubleNullable(get(row, idxExposure)));
+            vulnerabilityIndex.add(parseDoubleNullable(get(row, idxExposure)));
             totalPersonnel.add(parseDoubleNullable(get(row, idxTotalPersonnel)));
             if (idxSarCurrent >= 0) sarCur.add(parseDoubleNullable(get(row, idxSarCurrent)));
             else sarCur.add(null);
@@ -152,7 +154,7 @@ public final class DataLoader {
         double[] rArr = toPrimitive(r, 0.0);
         double[] fArr = toPrimitive(f, 0.0);
 
-        // Exposure: if missing, use population normalized; else default 1.0
+        // Vulnerability Index (DP): if missing, use population normalized; else default 1.0
         double[] E = new double[Z];
         double[] popArr = new double[Z];
         double popSum = 0.0;
@@ -167,7 +169,7 @@ public final class DataLoader {
         }
         double popMean = popCount > 0 ? popSum / popCount : 1.0;
         for (int i = 0; i < Z; i++) {
-            Double e = exposure.get(i);
+            Double e = vulnerabilityIndex.get(i);
             if (e != null && e > 0) {
                 E[i] = e;
             } else if (!Double.isNaN(popArr[i]) && popMean > 0) {

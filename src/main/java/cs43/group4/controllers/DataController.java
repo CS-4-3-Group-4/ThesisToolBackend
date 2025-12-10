@@ -1,7 +1,5 @@
 package cs43.group4.controllers;
 
-import cs43.group4.utils.Log;
-import io.javalin.http.Context;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -10,6 +8,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import cs43.group4.utils.Log;
+import io.javalin.http.Context;
 
 public class DataController {
 
@@ -96,7 +97,7 @@ public class DataController {
             case "hazard_level_text":
                 return s;
             case "flood_depth_ft":
-            case "exposure":
+            case "vulnerability_index": // new name; keep legacy fallback in default
             case "lat":
             case "lon":
                 return parseDoubleOrNull(s);

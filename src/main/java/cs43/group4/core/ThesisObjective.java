@@ -1,7 +1,7 @@
 package cs43.group4.core;
 
 /**
- * Thesis objective implementation. Fitness = Objective1 + Objective2 - Objective3 + Objective4
+ * Thesis objective implementation. Fitness = Objective1 + Objective2 - Objective3 + Objective4 + Objective5
  * FireflyAlgorithm minimizes, so we return -(Fitness) + penalties.
  */
 public class ThesisObjective extends ObjectiveFunction {
@@ -181,7 +181,17 @@ public class ThesisObjective extends ObjectiveFunction {
         }
         double obj4 = obj4sum / (Z * C);
 
-        double fitness = obj1 + obj2 - obj3 + obj4;
+        // Objective5: Displaced Population Index (uses E as DP/vulnerability index)
+        // Objective5 = (1/Z) * sum_i ( (A_i / (sum_j A_j + eps)) * DP_i )
+        double obj5sum = 0.0;
+        for (int i = 0; i < Z; i++) {
+            double Ai = totalPerI[i];
+            double DPi = Math.max(0.0, E[i]);
+            obj5sum += (Ai / denomP) * DPi; // weights DP by share of total allocation
+        }
+        double obj5 = obj5sum / Math.max(1, Z);
+
+        double fitness = obj1 + obj2 - obj3 + obj4 + obj5;
 
         // Penalties
         double penalty = 0.0;

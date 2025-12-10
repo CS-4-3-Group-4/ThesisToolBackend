@@ -6,7 +6,7 @@ public class BarangayData {
     public String hazard_level_text;
     public double flood_depth_ft;
     public int population;
-    public double exposure;
+    public double vulnerability_index;
     public int total_personnel;
     public int sar_current;
     public int ems_current;
@@ -19,7 +19,7 @@ public class BarangayData {
             String hazard_level_text,
             double flood_depth_ft,
             int population,
-            double exposure,
+            double vulnerability_index,
             int total_personnel,
             int sar_current,
             int ems_current,
@@ -30,7 +30,7 @@ public class BarangayData {
         this.hazard_level_text = hazard_level_text;
         this.flood_depth_ft = flood_depth_ft;
         this.population = population;
-        this.exposure = exposure;
+        this.vulnerability_index = vulnerability_index;
         this.total_personnel = total_personnel;
         this.sar_current = sar_current;
         this.ems_current = ems_current;
