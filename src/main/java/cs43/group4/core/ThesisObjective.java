@@ -151,7 +151,7 @@ public class ThesisObjective extends ObjectiveFunction {
             double logTerm = Math.log(1.0 + Math.max(0.0, r[i]));
             for (int c = 0; c < C; c++) obj2sum += A[i][c] * logTerm;
         }
-        double obj2 = obj2sum / denomP;
+        double obj2 = Math.min(1.0, Math.max(0.0, obj2sum / denomP));
 
         // Objective3: Distribution Imbalance (std/mean)
         double mean = 0.0;
