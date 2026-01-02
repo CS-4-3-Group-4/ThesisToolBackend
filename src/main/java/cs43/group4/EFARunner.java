@@ -23,6 +23,7 @@ import cs43.group4.utils.AllocationResult;
 import cs43.group4.utils.FlowResult;
 import cs43.group4.utils.IterationResult;
 import cs43.group4.utils.Log;
+import cs43.group4.utils.ObjectiveLogger;
 import cs43.group4.utils.OverallStats;
 import cs43.group4.utils.ValidationMultipleResult;
 import cs43.group4.utils.ValidationMultipleResult.PerBarangayMultiStats;
@@ -267,6 +268,74 @@ public class EFARunner {
         executionTime = roundToPrecision((endTime - startTime) / 1_000_000.0);
         memoryUsage = allocatedAfter - allocatedBefore;
 
+        // ---------------------------------------------
+        // Objective data logging & debug printing (per run)
+        // ---------------------------------------------
+        {
+            ObjectiveLogger logger = new ObjectiveLogger(false); // set to true to enable 
+            final double eps = 1e-6;
+
+            // Totals and P
+            double[] totalPerI = new double[Z];
+            double P = 0.0;
+            for (int i = 0; i < Z; i++) {
+                double s = 0.0;
+                for (int c = 0; c < C; c++) s += Math.max(0.0, A[i][c]);
+                totalPerI[i] = s;
+                P += s;
+            }
+            double denomP = Math.max(P, eps);
+
+            // Obj1
+            int Cz = 0; for (int i = 0; i < Z; i++) if (totalPerI[i] > 0) Cz++;
+            double obj1 = (double) Cz / (double) Z;
+            logger.storeObjective1Data(Cz, Z, obj1);
+
+            // Obj2
+            double obj2sum = 0.0;
+            for (int i = 0; i < Z; i++) {
+                double logTerm = Math.log(1.0 + Math.max(0.0, data.r[i]));
+                for (int c = 0; c < C; c++) obj2sum += Math.max(0.0, A[i][c]) * logTerm;
+            }
+            double obj2 = Math.min(1.0, Math.max(0.0, obj2sum / denomP));
+            logger.storeObjective2Data(A, data.r, P, Z, C, obj2);
+
+            // Obj3
+            double mean = 0.0; for (double v : totalPerI) mean += v; mean /= Math.max(1, Z);
+            double var = 0.0; for (double v : totalPerI) { double d = v - mean; var += d * d; }
+            double std = Math.sqrt(var / Math.max(1, Z));
+            double obj3 = std / (mean + eps);
+            logger.storeObjective3Data(totalPerI, mean, std, eps, obj3);
+
+            // Obj4: Build D using hazard-based split ratios
+            double[][] Dmat = new double[Z][C];
+            double obj4sum = 0.0;
+            for (int i = 0; i < Z; i++) {
+                double Si = Math.max(0.0, data.r[i]) * Math.max(0.0, data.f[i]);
+                double[] split = hazardSplitRatios(data.r[i]);
+                for (int c = 0; c < C; c++) {
+                    double ratio = (c < split.length) ? split[c] : 1.0 / Math.max(1, C);
+                    double DiC = ratio * (data.E[i] * Si) / (data.AC[i] + eps);
+                    Dmat[i][c] = DiC;
+                    double denom = Math.max(DiC, eps);
+                    double frac = Math.min(1.0, Math.max(0.0, A[i][c]) / denom);
+                    obj4sum += frac;
+                }
+            }
+            double obj4 = obj4sum / (Z * C);
+            logger.storeObjective4Data(A, Dmat, Z, C, obj4);
+
+            // Obj5: displaced population index (uses E as DP/vulnerability)
+            double obj5sum = 0.0;
+            for (int i = 0; i < Z; i++) {
+                double Ai = totalPerI[i];
+                double DPi = Math.max(0.0, data.E[i]);
+                obj5sum += (Ai / denomP) * DPi;
+            }
+            double obj5 = obj5sum / Math.max(1, Z);
+            logger.storeObjective5Data(totalPerI, data.E, Z, eps, obj5);
+        }
+
         // Only write outputs and log for single runs (not in multiple runs mode)
         if (totalRuns == 1) {
             Log.info("Execution Time: " + executionTime + " ms");
@@ -274,6 +343,7 @@ public class EFARunner {
                     + String.format("%.2f", memoryUsage / (1024.0 * 1024.0)) + " MB)");
             Log.info("Best Fitness Score (Maximization) = " + bestFitness);
             Log.info("Best Fitness Score (Minimization) = " + minimizedObjective);
+            Log.info("Array 1 Values");
 
             var flow = (data.lat != null && data.lon != null)
                     ? FlowAllocator.allocate(A, currentPerClass, data.lat, data.lon)
@@ -968,5 +1038,15 @@ public class EFARunner {
     private double roundToPrecision(double value) {
         double scale = Math.pow(10, precision);
         return Math.round(value * scale) / scale;
+    }
+
+    // -----------------------------
+    // Hazard split helper (logging)
+    // -----------------------------
+    private static double[] hazardSplitRatios(double hazardLevel) {
+        double h = Double.isFinite(hazardLevel) ? hazardLevel : 1.0;
+        if (h >= 2.5) return new double[] {0.85, 0.15};
+        if (h >= 1.5) return new double[] {0.75, 0.25};
+        return new double[] {0.65, 0.35};
     }
 }
