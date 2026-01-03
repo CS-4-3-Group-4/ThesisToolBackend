@@ -1,17 +1,6 @@
 package cs43.group4;
 
-import java.lang.management.ManagementFactory;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.DoubleSummaryStatistics;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
-
 import com.sun.management.ThreadMXBean;
-
 import cs43.group4.core.DataLoader;
 import cs43.group4.core.DataLoader.Data;
 import cs43.group4.core.FireflyAlgorithm;
@@ -29,6 +18,15 @@ import cs43.group4.utils.OverallStats;
 import cs43.group4.utils.ValidationMultipleResult;
 import cs43.group4.utils.ValidationMultipleResult.PerBarangayMultiStats;
 import cs43.group4.utils.ValidationSingleResult;
+import java.lang.management.ManagementFactory;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.DoubleSummaryStatistics;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class FARunner {
     private final FAParams params;
@@ -282,7 +280,8 @@ public class FARunner {
             double denomP = Math.max(P, eps);
 
             // Obj1
-            int Cz = 0; for (int i = 0; i < Z; i++) if (totalPerI[i] > 0) Cz++;
+            int Cz = 0;
+            for (int i = 0; i < Z; i++) if (totalPerI[i] > 0) Cz++;
             double obj1 = (double) Cz / (double) Z;
             logger.storeObjective1Data(Cz, Z, obj1);
 
@@ -296,8 +295,14 @@ public class FARunner {
             logger.storeObjective2Data(A, data.r, P, Z, C, obj2);
 
             // Obj3
-            double mean = 0.0; for (double v : totalPerI) mean += v; mean /= Math.max(1, Z);
-            double var = 0.0; for (double v : totalPerI) { double d = v - mean; var += d * d; }
+            double mean = 0.0;
+            for (double v : totalPerI) mean += v;
+            mean /= Math.max(1, Z);
+            double var = 0.0;
+            for (double v : totalPerI) {
+                double d = v - mean;
+                var += d * d;
+            }
             double std = Math.sqrt(var / Math.max(1, Z));
             double obj3 = std / (mean + eps);
             logger.storeObjective3Data(totalPerI, mean, std, eps, obj3);

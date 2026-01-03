@@ -1,5 +1,7 @@
 package cs43.group4.controllers;
 
+import cs43.group4.utils.Log;
+import io.javalin.http.Context;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -8,9 +10,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import cs43.group4.utils.Log;
-import io.javalin.http.Context;
 
 public class DataController {
 
