@@ -53,6 +53,14 @@ public class FARunner {
     private long multiRunStartTime;
     private long multiRunEndTime;
 
+    // Objective logging (for analysis)
+    private ObjectiveLogger objectiveLogger = null;
+    private ObjectiveLogger.Objective1Data objective1Data = null;
+    private ObjectiveLogger.Objective2Data objective2Data = null;
+    private ObjectiveLogger.Objective3Data objective3Data = null;
+    private ObjectiveLogger.Objective4Data objective4Data = null;
+    private ObjectiveLogger.Objective5Data objective5Data = null;
+
     private final int precision = 12;
 
     public FARunner(FAParams params) {
@@ -66,6 +74,8 @@ public class FARunner {
         iterationHistory.clear();
         allocations.clear();
         flows.clear();
+
+        objectiveLogger = new ObjectiveLogger(false);
         try {
             executeSingleRun();
         } catch (InterruptedException e) {
@@ -95,6 +105,8 @@ public class FARunner {
         multipleRunResults.clear();
         multipleRunErrors.clear();
         multiRunStartTime = System.currentTimeMillis();
+
+        objectiveLogger = new ObjectiveLogger(false);
 
         try {
             Log.info("Starting " + numRuns + " runs");
@@ -265,7 +277,6 @@ public class FARunner {
         // Objective data logging & debug printing (per run)
         // ---------------------------------------------
         {
-            ObjectiveLogger logger = new ObjectiveLogger(false); // set to true to enable prints
             final double eps = 1e-6;
 
             // Totals and P
@@ -283,7 +294,7 @@ public class FARunner {
             int Cz = 0;
             for (int i = 0; i < Z; i++) if (totalPerI[i] > 0) Cz++;
             double obj1 = (double) Cz / (double) Z;
-            logger.storeObjective1Data(Cz, Z, obj1);
+            objective1Data = objectiveLogger.storeObjective1Data(Cz, Z, obj1);
 
             // Obj2
             double obj2sum = 0.0;
@@ -292,7 +303,7 @@ public class FARunner {
                 for (int c = 0; c < C; c++) obj2sum += Math.max(0.0, A[i][c]) * logTerm;
             }
             double obj2 = Math.min(1.0, Math.max(0.0, obj2sum / denomP));
-            logger.storeObjective2Data(A, data.r, P, Z, C, obj2);
+            objective2Data = objectiveLogger.storeObjective2Data(A, data.r, P, Z, C, obj2);
 
             // Obj3
             double mean = 0.0;
@@ -305,7 +316,7 @@ public class FARunner {
             }
             double std = Math.sqrt(var / Math.max(1, Z));
             double obj3 = std / (mean + eps);
-            logger.storeObjective3Data(totalPerI, mean, std, eps, obj3);
+            objective3Data = objectiveLogger.storeObjective3Data(totalPerI, mean, std, eps, obj3);
 
             // Obj4: Build D using hazard-based split ratios
             double[][] Dmat = new double[Z][C];
@@ -323,7 +334,7 @@ public class FARunner {
                 }
             }
             double obj4 = obj4sum / (Z * C);
-            logger.storeObjective4Data(A, Dmat, Z, C, obj4);
+            objective4Data = objectiveLogger.storeObjective4Data(A, Dmat, Z, C, obj4);
 
             // Obj5: displaced population index (uses E as DP/vulnerability)
             double obj5sum = 0.0;
@@ -333,7 +344,7 @@ public class FARunner {
                 obj5sum += (Ai / denomP) * DPi;
             }
             double obj5 = obj5sum / Math.max(1, Z);
-            logger.storeObjective5Data(totalPerI, data.E, Z, eps, obj5);
+            objective5Data = objectiveLogger.storeObjective5Data(totalPerI, data.E, Z, eps, obj5);
         }
 
         // Only write outputs and log for single runs (not in multiple runs mode)
@@ -401,6 +412,19 @@ public class FARunner {
     }
 
     // ========== STATUS & RESULTS ==========
+
+    public Map<String, Object> getObjectiveData() {
+        if (objective1Data == null) {
+            return Map.of("error", "No objective data available");
+        }
+
+        return Map.of(
+                "objective1", objective1Data,
+                "objective2", objective2Data,
+                "objective3", objective3Data,
+                "objective4", objective4Data,
+                "objective5", objective5Data);
+    }
 
     public Map<String, Object> getStatus() {
         Map<String, Object> status = new HashMap<>();

@@ -53,6 +53,7 @@ public class Main {
         Log.info("    Data:");
         Log.info("      GET  /fa/allocations                   - Get allocation details");
         Log.info("      GET  /fa/flows                         - Get flow details");
+        Log.info("      GET  /fa/objectives                    - Get objective data");
         Log.info("");
         Log.info("");
         Log.info("  EFA Algorithm:");
@@ -73,6 +74,7 @@ public class Main {
         Log.info("    Data:");
         Log.info("      GET  /efa/allocations                  - Get allocation details");
         Log.info("      GET  /efa/flows                        - Get flow details");
+        Log.info("      GET  /efa/objectives                   - Get objective data");
         Log.info("═══════════════════════════════════════════════════════════");
 
         app.get("/data/barangays", dataController::getBarangays);
@@ -96,6 +98,7 @@ public class Main {
         // Data endpoints (single run only)
         app.get("/fa/allocations", faController::getAllocations);
         app.get("/fa/flows", faController::getFlows);
+        app.get("/fa/objectives", faController::getObjectives);
 
         // ========== EFA ENDPOINTS ==========
 
@@ -116,5 +119,7 @@ public class Main {
         // Data endpoints (single run only)
         app.get("/efa/allocations", efaController::getAllocations);
         app.get("/efa/flows", efaController::getFlows);
+        app.get("/efa/objectives", efaController::getObjectives);
     }
 }
+

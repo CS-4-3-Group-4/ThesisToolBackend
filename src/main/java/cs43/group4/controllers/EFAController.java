@@ -229,6 +229,18 @@ public class EFAController {
         }
     }
 
+    public void getObjectives(Context ctx) {
+        Log.info("EFA objectives data requested");
+
+        if (runner == null) {
+            ctx.status(404).json(Map.of("error", "No algorithm has been run"));
+        } else if (runner.isRunning()) {
+            ctx.status(400).json(Map.of("error", "Algorithm still running"));
+        } else {
+            ctx.json(runner.getObjectiveData());
+        }
+    }
+
     // ========== HELPER METHODS ==========
 
     private EFAParams parseParams(Context ctx) {
