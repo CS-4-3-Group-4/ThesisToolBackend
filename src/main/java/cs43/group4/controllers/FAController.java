@@ -1,6 +1,7 @@
 package cs43.group4.controllers;
 
 import cs43.group4.FARunner;
+import cs43.group4.core.ScenarioManager;
 import cs43.group4.parameters.FAParams;
 import cs43.group4.utils.Log;
 import io.javalin.http.Context;
@@ -78,20 +79,50 @@ public class FAController {
 
         try {
             FAParams params = parseParams(ctx);
+
+            // Get scenario number from query parameter
+            String scenarioParam = ctx.queryParam("scenario");
+            int scenarioNumber = 1; // Default to scenario 1
+
+            if (scenarioParam != null && !scenarioParam.isBlank()) {
+                try {
+                    scenarioNumber = Integer.parseInt(scenarioParam);
+                    if (scenarioNumber < 1 || scenarioNumber > ScenarioManager.getTotalScenarios()) {
+                        ctx.status(400)
+                                .json(Map.of(
+                                        "error",
+                                        "Invalid scenario number",
+                                        "details",
+                                        "Scenario must be between 1 and " + ScenarioManager.getTotalScenarios()));
+                        return;
+                    }
+                } catch (NumberFormatException e) {
+                    ctx.status(400)
+                            .json(Map.of(
+                                    "error", "Invalid scenario parameter",
+                                    "details", "Must be a valid integer"));
+                    return;
+                }
+            }
+
             Log.debug("FA single run parameters: " + params.toString());
+            Log.info("Starting FA scenario " + scenarioNumber);
 
             runner = new FARunner(params);
+            final int finalScenarioNumber = scenarioNumber;
+
             executor.submit(() -> {
                 try {
-                    runner.run();
-                    Log.info("FA single run completed successfully");
+                    runner.run(finalScenarioNumber);
+                    Log.info("FA scenario " + finalScenarioNumber + " completed successfully");
                 } catch (Exception e) {
-                    Log.error("FA single run failed: %s", e.getMessage(), e);
+                    Log.error("FA scenario " + finalScenarioNumber + " failed: %s", e.getMessage(), e);
                     if (runner != null) runner.setError(e.getMessage());
                 }
             });
 
-            ctx.json(Map.of("message", "Single run started"));
+            ctx.json(Map.of("message", "Single run started", "scenario", scenarioNumber));
+
         } catch (IllegalArgumentException e) {
             handleInvalidParams(ctx, e);
         }
@@ -100,7 +131,7 @@ public class FAController {
     // ========== MULTIPLE RUNS ==========
 
     public void postMultipleRun(Context ctx) {
-        Log.info("FA multiple runs requested");
+        Log.info("FA multiple scenarios requested");
 
         if (runner != null && runner.isRunning()) {
             Log.warn("Attempted to start FA run while one is already active");
@@ -111,42 +142,24 @@ public class FAController {
         try {
             FAParams params = parseParams(ctx);
 
-            // Get number of runs from query parameter
-            String runsParam = ctx.queryParam("runs");
-            if (runsParam == null || runsParam.isBlank()) {
-                ctx.status(400)
-                        .json(Map.of(
-                                "error", "Missing runs parameter",
-                                "details", "Use ?runs=N where N is between 2 and 100"));
-                return;
-            }
+            // Multiple runs always means 30 scenarios
+            int totalScenarios = ScenarioManager.getTotalScenarios();
 
-            int numRuns;
-            try {
-                numRuns = Integer.parseInt(runsParam);
-            } catch (NumberFormatException e) {
-                ctx.status(400)
-                        .json(Map.of(
-                                "error", "Invalid runs parameter",
-                                "details", "Must be a valid integer"));
-                return;
-            }
-
-            Log.debug("FA multiple runs parameters: " + params.toString());
-            Log.info("Starting " + numRuns + " FA runs");
+            Log.debug("FA multiple scenarios parameters: " + params.toString());
+            Log.info("Starting " + totalScenarios + " FA scenarios");
 
             runner = new FARunner(params);
             executor.submit(() -> {
                 try {
-                    runner.runMultiple(numRuns);
-                    Log.info("FA multiple runs completed successfully");
+                    runner.runMultiple();
+                    Log.info("FA multiple scenarios completed successfully");
                 } catch (Exception e) {
-                    Log.error("FA multiple runs failed: %s", e.getMessage(), e);
+                    Log.error("FA multiple scenarios failed: %s", e.getMessage(), e);
                     if (runner != null) runner.setError(e.getMessage());
                 }
             });
 
-            ctx.json(Map.of("message", "Multiple runs started", "totalRuns", numRuns));
+            ctx.json(Map.of("message", "Multiple scenarios started", "totalScenarios", totalScenarios));
 
         } catch (IllegalArgumentException e) {
             handleInvalidParams(ctx, e);
