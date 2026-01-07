@@ -1,7 +1,6 @@
 package cs43.group4.core;
 
 import cs43.group4.utils.Log;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,8 +30,7 @@ public class ScenarioManager {
     public static Path getScenarioPath(int scenarioNumber) {
         if (scenarioNumber < 1 || scenarioNumber > TOTAL_SCENARIOS) {
             throw new IllegalArgumentException(
-                "Scenario number must be between 1 and " + TOTAL_SCENARIOS +
-                ", got: " + scenarioNumber);
+                    "Scenario number must be between 1 and " + TOTAL_SCENARIOS + ", got: " + scenarioNumber);
         }
 
         // Try scenario-specific file first
