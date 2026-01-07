@@ -55,42 +55,50 @@ The frontend can call the endpoints to trigger simulations and retrieve results.
 ### 3. API Endpoints
 
 ```
-Utility:
-  GET  /health                             - Health check
+ API Endpoints:
+   Utility:
+     GET  /health                             - Health check
 
-FA Algorithm:
-  General:
-    GET  /fa/status                        - Get current status
-    POST /fa/stop                          - Stop running algorithm
-    GET  /fa/results                       - Get results
-    GET  /fa/iterations                    - Get iteration history
+   FA Algorithm:
+     General:
+       GET  /fa/status                        - Get current status
+       POST /fa/stop                          - Stop running algorithm
+       GET  /fa/results                       - Get results
+       GET  /fa/iterations                    - Get iteration history
 
-  Single Run:
-    POST /fa/single/run                    - Start single run
+     Single Run:
+       POST /fa/single/run?scenario=N        - Start single scenario (1-30, default: 1)
+       GET  /fa/single/validation             - Get single validation report
 
-  Multiple Runs:
-    POST /fa/multiple/run?runs=N           - Start N runs (2-100)
+     Multiple Runs:
+       POST /fa/multiple/run                 - Start all 30 scenarios
+       GET  /fa/multiple/validation             - Get multiple validation report
 
-  Data:
-    GET  /fa/allocations                   - Get allocation details
-    GET  /fa/flows                         - Get flow details
+     Data:
+       GET  /fa/allocations                   - Get allocation details
+       GET  /fa/flows                         - Get flow details
+       GET  /fa/objectives                    - Get objective data
 
-EFA Algorithm:
-  General:
-    GET  /efa/status                        - Get current status
-    POST /efa/stop                          - Stop running algorithm
-    GET  /efa/results                       - Get results
-    GET  /efa/iterations                    - Get iteration history
 
-  Single Run:
-    POST /efa/single/run                     - Start single run
+   EFA Algorithm:
+     General:
+       GET  /efa/status                       - Get current status
+       POST /efa/stop                         - Stop running algorithm
+       GET  /efa/results                      - Get results
+       GET  /efa/iterations                   - Get iteration history
 
-  Multiple Runs:
-    POST /efa/multiple/run?runs=N            - Start N runs (2-100)
+     Single Run:
+       POST /efa/single/run                   - Start single run
+       GET  /efa/single/validation            - Get single validation report
 
-  Data:
-    GET  /efa/allocations                    - Get allocation details
-    GET  /efa/flows                          - Get flow details
+     Multiple Runs:
+       POST /efa/multiple/run?runs=N          - Start N runs (2-100)
+       GET  /efa/multiple/validation           - Get multiple validation report
+
+     Data:
+       GET  /efa/allocations                  - Get allocation details
+       GET  /efa/flows                        - Get flow details
+       GET  /efa/objectives                   - Get objective data
 ```
 
 ### 4. Run Spotless (Code Formatting)
