@@ -6,6 +6,7 @@ import cs43.group4.core.DataLoader.Data;
 import cs43.group4.core.FireflyAlgorithm;
 import cs43.group4.core.FlowAllocator;
 import cs43.group4.core.ObjectiveFunction;
+import cs43.group4.core.ScenarioManager;
 import cs43.group4.core.ThesisObjective;
 import cs43.group4.parameters.FAParams;
 import cs43.group4.utils.AllocationNormalizer;
@@ -33,6 +34,7 @@ public class FARunner {
     private volatile boolean running = false;
     private volatile boolean stopped = false;
     private volatile String error = null;
+    private int currentScenario;
 
     // Single run state
     private final List<IterationResult> iterationHistory = new CopyOnWriteArrayList<>();
@@ -70,15 +72,16 @@ public class FARunner {
 
     // ========== SINGLE RUN ==========
 
-    public void run() throws Exception {
+    public void run(int scenarioNumber) throws Exception {
         running = true;
         iterationHistory.clear();
         allocations.clear();
         flows.clear();
 
+        this.currentScenario = scenarioNumber;
         objectiveLogger = new ObjectiveLogger(false);
         try {
-            executeSingleRun();
+            executeSingleRun(this.currentScenario);
         } catch (InterruptedException e) {
             this.error = "Stopped by user.";
             System.err.println("Stopped by user.");
@@ -93,16 +96,9 @@ public class FARunner {
 
     // ========== MULTIPLE RUNS ==========
 
-    public void runMultiple(int numRuns) throws Exception {
-        if (numRuns < 2) {
-            throw new IllegalArgumentException("Number of runs must be at least 2");
-        }
-        if (numRuns > 100) {
-            throw new IllegalArgumentException("Number of runs cannot exceed 100");
-        }
-
+    public void runMultiple() throws Exception {
         running = true;
-        totalRuns = numRuns;
+        totalRuns = ScenarioManager.getTotalScenarios(); // Always 30
         multipleRunResults.clear();
         multipleRunErrors.clear();
         multipleValidationResults.clear();
@@ -112,48 +108,52 @@ public class FARunner {
         objectiveLogger = new ObjectiveLogger(false);
 
         try {
-            Log.info("Starting " + numRuns + " runs");
+            Log.info("Starting " + totalRuns + " scenarios");
 
-            for (int run = 1; run <= numRuns; run++) {
+            List<Integer> scenarios = ScenarioManager.getAllScenarioNumbers();
+
+            for (int scenarioNumber : scenarios) {
                 if (stopped) {
-                    Log.warn("Multiple runs stopped by user at run " + run);
+                    Log.warn("Multiple scenarios stopped by user at scenario " + scenarioNumber);
                     break;
                 }
 
-                currentRun = run;
-                Log.info("Starting run " + run + "/" + numRuns);
+                currentRun = scenarioNumber;
+                Log.info("Starting scenario " + scenarioNumber + "/" + totalRuns);
 
                 try {
-                    // Clear single-run state for each run
+                    // Clear single-run state for each scenario
                     iterationHistory.clear();
                     results = null;
                     currentIteration = 0;
 
-                    // Execute single run
-                    executeSingleRun();
+                    // Execute single scenario
+                    executeSingleRun(scenarioNumber);
 
-                    // Store results
+                    // Store results with scenario number
                     if (results != null) {
-                        multipleRunResults.add(new RunResult(run, results));
-                        Log.info("Run " + run + "/" + numRuns + " completed successfully");
+                        Map<String, Object> scenarioResult = new HashMap<>(results);
+                        scenarioResult.put("scenarioNumber", scenarioNumber);
+                        multipleRunResults.add(new RunResult(scenarioNumber, scenarioResult));
+                        Log.info("Scenario " + scenarioNumber + "/" + totalRuns + " completed successfully");
                     }
 
                 } catch (InterruptedException e) {
-                    Log.warn("Run " + run + " stopped by user");
-                    multipleRunErrors.add("Run " + run + ": Stopped by user");
+                    Log.warn("Scenario " + scenarioNumber + " stopped by user");
+                    multipleRunErrors.add("Scenario " + scenarioNumber + ": Stopped by user");
                     break;
                 } catch (Exception e) {
-                    Log.error("Run " + run + " failed: %s", e.getMessage(), e);
-                    multipleRunErrors.add("Run " + run + ": " + e.getMessage());
+                    Log.error("Scenario " + scenarioNumber + " failed: %s", e.getMessage(), e);
+                    multipleRunErrors.add("Scenario " + scenarioNumber + ": " + e.getMessage());
                 }
             }
 
             multiRunEndTime = System.currentTimeMillis();
-            Log.info("Completed " + multipleRunResults.size() + " out of " + numRuns + " runs");
+            Log.info("Completed " + multipleRunResults.size() + " out of " + totalRuns + " scenarios");
 
         } catch (Exception e) {
-            this.error = "Multiple runs error: " + e.getMessage();
-            System.err.println("Multiple runs error: " + e.getMessage());
+            this.error = "Multiple scenarios error: " + e.getMessage();
+            System.err.println("Multiple scenarios error: " + e.getMessage());
             throw e;
         } finally {
             running = false;
@@ -163,8 +163,10 @@ public class FARunner {
 
     // ========== SHARED EXECUTION LOGIC ==========
 
-    private void executeSingleRun() throws Exception {
-        var data = DataLoader.load(Path.of("data", "barangays.csv"));
+    private void executeSingleRun(int scenarioNumber) throws Exception {
+        var data = ScenarioManager.loadScenario(scenarioNumber);
+        Log.info("[FA] Running scenario " + scenarioNumber + " with " + data.Z + " barangays");
+
         int Z = data.Z, C = data.C;
         int D = Z * C;
 
