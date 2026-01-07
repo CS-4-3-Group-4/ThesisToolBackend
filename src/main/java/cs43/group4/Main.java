@@ -43,11 +43,11 @@ public class Main {
         Log.info("      GET  /fa/iterations                    - Get iteration history");
         Log.info("");
         Log.info("    Single Run:");
-        Log.info("      POST /fa/single/run                    - Start single run");
+        Log.info("      POST /fa/single/run?scenario=N        - Start single scenario (1-30, default: 1)");
         Log.info("      GET  /fa/single/validation             - Get single validation report");
         Log.info("");
         Log.info("    Multiple Runs:");
-        Log.info("      POST /fa/multiple/run?runs=N           - Start N runs (2-100)");
+        Log.info("      POST /fa/multiple/run                 - Start all 30 scenarios");
         Log.info("      GET  /fa/multiple/validation             - Get multiple validation report");
         Log.info("");
         Log.info("    Data:");
