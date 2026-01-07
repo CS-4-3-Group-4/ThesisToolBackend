@@ -6,6 +6,7 @@ import cs43.group4.core.DataLoader.Data;
 import cs43.group4.core.ExtendedFireflyAlgorithm;
 import cs43.group4.core.FlowAllocator;
 import cs43.group4.core.ObjectiveFunction;
+import cs43.group4.core.ScenarioManager;
 import cs43.group4.core.ThesisObjective;
 import cs43.group4.parameters.EFAParams;
 import cs43.group4.utils.AllocationNormalizer;
@@ -32,6 +33,7 @@ public class EFARunner {
     private volatile boolean running = false;
     private volatile boolean stopped = false;
     private volatile String error = null;
+    private int currentScenario;
 
     // Single run state
     private final List<IterationResult> iterationHistory = new CopyOnWriteArrayList<>();
@@ -69,15 +71,16 @@ public class EFARunner {
 
     // ========== SINGLE RUN ==========
 
-    public void run() throws Exception {
+    public void run(int scenarioNumber) throws Exception {
         running = true;
         iterationHistory.clear();
         allocations.clear();
         flows.clear();
 
+        this.currentScenario = scenarioNumber;
         objectiveLogger = new ObjectiveLogger(false);
         try {
-            executeSingleRun();
+            executeSingleRun(this.currentScenario);
         } catch (InterruptedException e) {
             this.error = "Stopped by user.";
             System.err.println("Stopped by user.");
@@ -92,16 +95,9 @@ public class EFARunner {
 
     // ========== MULTIPLE RUNS ==========
 
-    public void runMultiple(int numRuns) throws Exception {
-        if (numRuns < 2) {
-            throw new IllegalArgumentException("Number of runs must be at least 2");
-        }
-        if (numRuns > 100) {
-            throw new IllegalArgumentException("Number of runs cannot exceed 100");
-        }
-
+    public void runMultiple() throws Exception {
         running = true;
-        totalRuns = numRuns;
+        totalRuns = ScenarioManager.getTotalScenarios(); // Always 30
         multipleRunResults.clear();
         multipleRunErrors.clear();
         multipleValidationResults.clear();
@@ -109,49 +105,54 @@ public class EFARunner {
         multiRunStartTime = System.currentTimeMillis();
 
         objectiveLogger = new ObjectiveLogger(false);
-        try {
-            Log.info("Starting " + numRuns + " runs");
 
-            for (int run = 1; run <= numRuns; run++) {
+        try {
+            Log.info("Starting " + totalRuns + " scenarios");
+
+            List<Integer> scenarios = ScenarioManager.getAllScenarioNumbers();
+
+            for (int scenarioNumber : scenarios) {
                 if (stopped) {
-                    Log.warn("Multiple runs stopped by user at run " + run);
+                    Log.warn("Multiple scenarios stopped by user at scenario " + scenarioNumber);
                     break;
                 }
 
-                currentRun = run;
-                Log.info("Starting run " + run + "/" + numRuns);
+                currentRun = scenarioNumber;
+                Log.info("Starting scenario " + scenarioNumber + "/" + totalRuns);
 
                 try {
-                    // Clear single-run state for each run
+                    // Clear single-run state for each scenario
                     iterationHistory.clear();
                     results = null;
                     currentIteration = 0;
 
-                    // Execute single run
-                    executeSingleRun();
+                    // Execute single scenario
+                    executeSingleRun(scenarioNumber);
 
-                    // Store results
+                    // Store results with scenario number
                     if (results != null) {
-                        multipleRunResults.add(new RunResult(run, results));
-                        Log.info("Run " + run + "/" + numRuns + " completed successfully");
+                        Map<String, Object> scenarioResult = new HashMap<>(results);
+                        scenarioResult.put("scenarioNumber", scenarioNumber);
+                        multipleRunResults.add(new RunResult(scenarioNumber, scenarioResult));
+                        Log.info("Scenario " + scenarioNumber + "/" + totalRuns + " completed successfully");
                     }
 
                 } catch (InterruptedException e) {
-                    Log.warn("Run " + run + " stopped by user");
-                    multipleRunErrors.add("Run " + run + ": Stopped by user");
+                    Log.warn("Scenario " + scenarioNumber + " stopped by user");
+                    multipleRunErrors.add("Scenario " + scenarioNumber + ": Stopped by user");
                     break;
                 } catch (Exception e) {
-                    Log.error("Run " + run + " failed: %s", e.getMessage(), e);
-                    multipleRunErrors.add("Run " + run + ": " + e.getMessage());
+                    Log.error("Scenario " + scenarioNumber + " failed: %s", e.getMessage(), e);
+                    multipleRunErrors.add("Scenario " + scenarioNumber + ": " + e.getMessage());
                 }
             }
 
             multiRunEndTime = System.currentTimeMillis();
-            Log.info("Completed " + multipleRunResults.size() + " out of " + numRuns + " runs");
+            Log.info("Completed " + multipleRunResults.size() + " out of " + totalRuns + " scenarios");
 
         } catch (Exception e) {
-            this.error = "Multiple runs error: " + e.getMessage();
-            System.err.println("Multiple runs error: " + e.getMessage());
+            this.error = "Multiple scenarios error: " + e.getMessage();
+            System.err.println("Multiple scenarios error: " + e.getMessage());
             throw e;
         } finally {
             running = false;
@@ -161,8 +162,10 @@ public class EFARunner {
 
     // ========== SHARED EXECUTION LOGIC ==========
 
-    private void executeSingleRun() throws Exception {
-        var data = DataLoader.load(Path.of("data", "barangays.csv"));
+    private void executeSingleRun(int scenarioNumber) throws Exception {
+        var data = ScenarioManager.loadScenario(scenarioNumber);
+        Log.info("[EFA] Running scenario " + scenarioNumber + " with " + data.Z + " barangays");
+
         int Z = data.Z, C = data.C;
         int D = Z * C;
 
