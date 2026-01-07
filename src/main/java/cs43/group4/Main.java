@@ -122,4 +122,3 @@ public class Main {
         app.get("/efa/objectives", efaController::getObjectives);
     }
 }
-

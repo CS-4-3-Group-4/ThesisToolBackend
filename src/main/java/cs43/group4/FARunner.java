@@ -50,6 +50,7 @@ public class FARunner {
     private final List<RunResult> multipleRunResults = new CopyOnWriteArrayList<>();
     private final List<String> multipleRunErrors = new CopyOnWriteArrayList<>();
     private final List<ValidationSingleResult> multipleValidationResults = new CopyOnWriteArrayList<>();
+    private final List<List<AllocationResult>> multipleRunAllocations = new CopyOnWriteArrayList<>();
     private long multiRunStartTime;
     private long multiRunEndTime;
 
@@ -104,6 +105,8 @@ public class FARunner {
         totalRuns = numRuns;
         multipleRunResults.clear();
         multipleRunErrors.clear();
+        multipleValidationResults.clear();
+        multipleRunAllocations.clear();
         multiRunStartTime = System.currentTimeMillis();
 
         objectiveLogger = new ObjectiveLogger(false);
@@ -362,35 +365,16 @@ public class FARunner {
             allocations.addAll(createAllocations(A, data));
             flows.addAll(createFlows(flow.flows, data));
 
-            // Optional: Still write CSVs if we want
-            // writeFlowsCsv(flow.flows, data, Path.of("out", "flows.csv"));
-            // writeAllocationsCsv(A, data, Path.of("out", "allocations.csv"));
-
             results = Map.of(
-                    "fitnessMaximization",
-                    bestFitness,
-                    "fitnessMinimization",
-                    minimizedObjective,
-                    "totalIterations",
-                    params.generations,
-                    "executionTimeMs",
-                    executionTime,
-                    "memoryBytes",
-                    memoryUsage);
-
-            // System.out.println(banner("Output Files"));
-            // System.out.println("Wrote allocations CSV to: " + allocsPath.toString());
-            // System.out.println("Wrote flows CSV to: " + flowsPath.toString());
-            // System.out.println("Wrote iteration log to: " + logPath.toString());
-            // System.out.println(line());
-            // System.out.println();
+                    "fitnessMaximization", bestFitness,
+                    "fitnessMinimization", minimizedObjective,
+                    "totalIterations", params.generations,
+                    "executionTimeMs", executionTime,
+                    "memoryBytes", memoryUsage);
         } else {
-            // var flow = (data.lat != null && data.lon != null)
-            //         ? FlowAllocator.allocate(A, currentPerClass, data.lat, data.lon)
-            //         : FlowAllocator.allocate(A, currentPerClass);
-
             allocations.clear();
             allocations.addAll(createAllocations(A, data));
+            multipleRunAllocations.add(new ArrayList<>(allocations));
 
             // Generate validation for this run
             ValidationSingleResult validation = generateValidation(data, allocations);
@@ -553,7 +537,19 @@ public class FARunner {
     }
 
     public List<AllocationResult> getAllocations() {
+        if (totalRuns > 1) {
+            // For multiple runs, return empty list (data accessed via new method)
+            return new ArrayList<>();
+        }
         return new ArrayList<>(allocations);
+    }
+
+    public List<List<AllocationResult>> getAllocationsMultipleRuns() {
+        if (totalRuns <= 1) {
+            return new ArrayList<>();
+        }
+
+        return new ArrayList<>(multipleRunAllocations);
     }
 
     public List<FlowResult> getFlows() {

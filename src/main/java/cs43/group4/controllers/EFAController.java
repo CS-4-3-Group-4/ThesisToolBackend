@@ -163,9 +163,7 @@ public class EFAController {
         } else {
             Map<String, Object> status = runner.getStatus();
             if ("multiple".equals(status.get("mode"))) {
-                ctx.json(Map.of(
-                        "error", "Allocations not available for multiple runs",
-                        "suggestion", "Only available for single runs"));
+                ctx.json(Map.of("allocations_multiple", runner.getAllocationsMultipleRuns()));
             } else {
                 ctx.json(Map.of("allocations", runner.getAllocations()));
             }

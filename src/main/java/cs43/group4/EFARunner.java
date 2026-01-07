@@ -49,6 +49,7 @@ public class EFARunner {
     private final List<RunResult> multipleRunResults = new CopyOnWriteArrayList<>();
     private final List<String> multipleRunErrors = new CopyOnWriteArrayList<>();
     private final List<ValidationSingleResult> multipleValidationResults = new CopyOnWriteArrayList<>();
+    private final List<List<AllocationResult>> multipleRunAllocations = new CopyOnWriteArrayList<>();
     private long multiRunStartTime;
     private long multiRunEndTime;
 
@@ -104,6 +105,7 @@ public class EFARunner {
         multipleRunResults.clear();
         multipleRunErrors.clear();
         multipleValidationResults.clear();
+        multipleRunAllocations.clear();
         multiRunStartTime = System.currentTimeMillis();
 
         objectiveLogger = new ObjectiveLogger(false);
@@ -374,12 +376,10 @@ public class EFARunner {
                     "executionTimeMs", executionTime,
                     "memoryBytes", memoryUsage);
         } else {
-            // var flow = (data.lat != null && data.lon != null)
-            //         ? FlowAllocator.allocate(A, currentPerClass, data.lat, data.lon)
-            //         : FlowAllocator.allocate(A, currentPerClass);
 
             allocations.clear();
             allocations.addAll(createAllocations(A, data));
+            multipleRunAllocations.add(new ArrayList<>(allocations));
 
             // Generate validation for this run
             ValidationSingleResult validation = generateValidation(data, allocations);
@@ -538,7 +538,19 @@ public class EFARunner {
     }
 
     public List<AllocationResult> getAllocations() {
+        if (totalRuns > 1) {
+            // For multiple runs, return empty list (data accessed via new method)
+            return new ArrayList<>();
+        }
         return new ArrayList<>(allocations);
+    }
+
+    public List<List<AllocationResult>> getAllocationsMultipleRuns() {
+        if (totalRuns <= 1) {
+            return new ArrayList<>();
+        }
+
+        return new ArrayList<>(multipleRunAllocations);
     }
 
     public List<FlowResult> getFlows() {
