@@ -156,16 +156,32 @@ public class ThesisObjective extends ObjectiveFunction {
         }
         double obj2 = Math.min(1.0, Math.max(0.0, obj2sum / denomP));
 
-        // Objective3: Distribution Imbalance (std/mean)
-        double mean = 0.0;
-        for (double v : totalPerI) mean += v;
-        mean /= Math.max(1, Z);
-        double var = 0.0;
-        for (double v : totalPerI) {
-            double d = v - mean;
-            var += d * d;
+        // Objective3: Distribution Imbalance (std/mean) over AFFECTED barangays only
+        int affectedCount = 0;
+        double sumAffected = 0.0;
+        for (int i = 0; i < Z; i++) {
+            if (f[i] >= cs43.group4.core.Constants.UNAFFECTED_FLOOD_DEPTH_FT) {
+                affectedCount++;
+                sumAffected += totalPerI[i];
+            }
         }
-        double std = Math.sqrt(var / Math.max(1, Z));
+        double mean;
+        if (affectedCount > 0) {
+            mean = sumAffected / affectedCount;
+        } else {
+            mean = 0.0;
+        }
+
+        double var = 0.0;
+        if (affectedCount > 0) {
+            for (int i = 0; i < Z; i++) {
+                if (f[i] >= cs43.group4.core.Constants.UNAFFECTED_FLOOD_DEPTH_FT) {
+                    double d = totalPerI[i] - mean;
+                    var += d * d;
+                }
+            }
+        }
+        double std = Math.sqrt(var / Math.max(1, affectedCount));
         double obj3 = std / (mean + eps);
 
         // Objective4: Demand Satisfaction
