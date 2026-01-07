@@ -8,6 +8,7 @@ public class ThesisObjective extends ObjectiveFunction {
 
     private final int Z, C; // barangays, classes
     private final double[] r, f, E, AC; // per barangay
+    @SuppressWarnings("unused")
     private final double[] lambda; // per class (deprecated: kept for backward compatibility)
     private final double[] supply; // per class (global totals); if null, derived from currentPerClass
     private final double eps; // small constant
