@@ -5,11 +5,16 @@ meta {
 }
 
 post {
-  url: http://localhost:8080/fa/single/run
+  url: http://localhost:8080/fa/single/run?scenario=2
   body: none
   auth: inherit
 }
 
+params:query {
+  scenario: 2
+}
+
 settings {
   encodeUrl: true
+  timeout: 0
 }

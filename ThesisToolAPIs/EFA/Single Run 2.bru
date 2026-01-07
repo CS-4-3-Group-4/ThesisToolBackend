@@ -1,15 +1,20 @@
 meta {
   name: Single Run 2
   type: http
-  seq: 2
+  seq: 3
 }
 
 post {
-  url: http://localhost:8080/efa/single/run
+  url: http://localhost:8080/efa/single/run?scenario=2
   body: none
   auth: inherit
 }
 
+params:query {
+  scenario: 2
+}
+
 settings {
   encodeUrl: true
+  timeout: 0
 }
