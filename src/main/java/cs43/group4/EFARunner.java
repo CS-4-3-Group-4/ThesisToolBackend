@@ -1,6 +1,16 @@
 package cs43.group4;
 
+import java.lang.management.ManagementFactory;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.DoubleSummaryStatistics;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+
 import com.sun.management.ThreadMXBean;
+
 import cs43.group4.core.DataLoader;
 import cs43.group4.core.DataLoader.Data;
 import cs43.group4.core.ExtendedFireflyAlgorithm;
@@ -19,14 +29,6 @@ import cs43.group4.utils.OverallStats;
 import cs43.group4.utils.ValidationMultipleResult;
 import cs43.group4.utils.ValidationMultipleResult.PerBarangayMultiStats;
 import cs43.group4.utils.ValidationSingleResult;
-import java.lang.management.ManagementFactory;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.DoubleSummaryStatistics;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class EFARunner {
     private final EFAParams params;
@@ -176,14 +178,24 @@ public class EFARunner {
                 "[EFA] Running ExtendedFireflyAlgorithm. Flow distance-aware: %s; Objective filtering: %s",
                 haveGeo, objectiveFiltering);
 
+        // Unaffected barangays: flood depth < 0.656168 ft should receive no allocation
+        final double UNAFFECTED_FT = 0.656168;
+        boolean[] affected = new boolean[Z];
+        for (int i = 0; i < Z; i++) affected[i] = !(data.f[i] < UNAFFECTED_FT);
+
         double[] lower = new double[D];
         double[] upper = new double[D];
         for (int i = 0; i < Z; i++) {
             for (int c = 0; c < C; c++) {
                 int k = i * C + c;
                 lower[k] = 0.0;
-                double cap = Math.max(1.0, Math.min(data.supply[c], data.AC[i] + 200));
-                upper[k] = cap;
+                if (affected[i]) {
+                    double cap = Math.max(1.0, Math.min(data.supply[c], data.AC[i] + 200));
+                    upper[k] = cap;
+                } else {
+                    // Force zero allocation for unaffected barangays
+                    upper[k] = 0.0;
+                }
             }
         }
 
@@ -261,6 +273,12 @@ public class EFARunner {
         double[][] A = new double[Z][C];
         int k = 0;
         for (int i = 0; i < Z; i++) for (int c = 0; c < C; c++, k++) A[i][c] = Math.max(0.0, x[k]);
+
+        for (int i = 0; i < Z; i++) {
+            if (!affected[i]) {
+                for (int c = 0; c < C; c++) A[i][c] = 0.0;
+            }
+        }
 
         for (int c = 0; c < C; c++) {
             double used = 0.0;
