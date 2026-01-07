@@ -177,9 +177,8 @@ public class FARunner {
         Log.info("[FA] Running FireflyAlgorithm (baseline). Flow distance-aware: %s", haveGeo);
 
         // Unaffected barangays: flood depth < 0.656168 ft should receive no allocation
-        final double UNAFFECTED_FT = 0.656168;
         boolean[] affected = new boolean[Z];
-        for (int i = 0; i < Z; i++) affected[i] = !(data.f[i] < UNAFFECTED_FT);
+        for (int i = 0; i < Z; i++) affected[i] = !(data.f[i] < cs43.group4.core.Constants.UNAFFECTED_FLOOD_DEPTH_FT);
 
         double[] lower = new double[D];
         double[] upper = new double[D];
@@ -915,9 +914,10 @@ public class FARunner {
 
         if (depth > 4.92126) return "High"; // >1.5 m
         if (depth > 1.64042) return "Medium"; // 0.5 m – 1.5 m
-        if (depth >= 0.656168) return "Low"; // 0.2 m – 0.5 m
+        if (depth >= cs43.group4.core.Constants.UNAFFECTED_FLOOD_DEPTH_FT) return "Low"; // 0.2 m – 0.5 m
 
-        return "Medium"; // fallback for depth < 0.656168 ft (<0.2 m)
+        // < 0.2 m (unaffected): classify as None
+        return "None";
     }
 
     private double[] getIdealSARRatio(String hazardLevel) {
@@ -929,6 +929,8 @@ public class FARunner {
                 return new double[] {0.75, 0.25};
             case "Low":
                 return new double[] {0.65, 0.35};
+            case "None":
+                return new double[] {0.0, 0.0};
             default:
                 return new double[] {0.75, 0.25}; // Default to medium
         }
