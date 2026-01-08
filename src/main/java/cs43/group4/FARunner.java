@@ -12,7 +12,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.sun.management.ThreadMXBean;
 
-import cs43.group4.core.DataLoader;
 import cs43.group4.core.DataLoader.Data;
 import cs43.group4.core.FireflyAlgorithm;
 import cs43.group4.core.FlowAllocator;
@@ -688,7 +687,7 @@ public class FARunner {
                 return result;
             }
 
-            var data = DataLoader.load(Path.of("data", "barangays.csv"));
+            var data = ScenarioManager.loadScenario(this.currentScenario);
             ValidationSingleResult result = generateValidation(data, currentAllocations);
 
             if (result.overallStats != null) {
