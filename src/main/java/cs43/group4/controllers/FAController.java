@@ -12,6 +12,11 @@ import java.util.concurrent.Executors;
 public class FAController {
     private FARunner runner = null;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private QualityController qualityController;
+
+    public void setQualityController(QualityController controller) {
+        this.qualityController = controller;
+    }
 
     // ========== GENERAL ENDPOINTS (work for both single and multiple) ==========
 
@@ -152,6 +157,11 @@ public class FAController {
             executor.submit(() -> {
                 try {
                     runner.runMultiple();
+
+                    if (qualityController != null) {
+                        qualityController.setFAQualities(runner.getScenarioQualities());
+                    }
+
                     Log.info("FA multiple scenarios completed successfully");
                 } catch (Exception e) {
                     Log.error("FA multiple scenarios failed: %s", e.getMessage(), e);
