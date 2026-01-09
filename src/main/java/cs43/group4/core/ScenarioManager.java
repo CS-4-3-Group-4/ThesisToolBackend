@@ -9,8 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Manages multiple scenario CSV files for barangay data.
- * Scenarios are numbered 1-30 and stored as data/scenarios/barangays_1.csv, etc.
+ * Manages multiple flood scenario CSV files for barangay data.
+ * Scenarios are numbered 1-30 and stored as scenarios/flood_scenario_1.csv, etc.
  * Falls back to data/barangays.csv if specific scenario doesn't exist.
  */
 public class ScenarioManager {
@@ -34,7 +34,7 @@ public class ScenarioManager {
         }
 
         // Try scenario-specific file first
-        Path scenarioPath = SCENARIOS_DIR.resolve("barangays_" + scenarioNumber + ".csv");
+        Path scenarioPath = SCENARIOS_DIR.resolve("flood_scenario_" + scenarioNumber + ".csv");
 
         if (Files.exists(scenarioPath)) {
             Log.info("Using scenario file: " + scenarioPath);
@@ -80,7 +80,7 @@ public class ScenarioManager {
         List<Integer> existing = new ArrayList<>();
 
         for (int i = 1; i <= TOTAL_SCENARIOS; i++) {
-            Path scenarioPath = SCENARIOS_DIR.resolve("barangays_" + i + ".csv");
+            Path scenarioPath = SCENARIOS_DIR.resolve("flood_scenario_" + i + ".csv");
             if (Files.exists(scenarioPath)) {
                 existing.add(i);
             }
@@ -100,7 +100,7 @@ public class ScenarioManager {
             return false;
         }
 
-        Path scenarioPath = SCENARIOS_DIR.resolve("barangays_" + scenarioNumber + ".csv");
+        Path scenarioPath = SCENARIOS_DIR.resolve("flood_scenario_" + scenarioNumber + ".csv");
         return Files.exists(scenarioPath);
     }
 
