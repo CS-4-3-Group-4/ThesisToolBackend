@@ -3,6 +3,7 @@ package cs43.group4;
 import cs43.group4.controllers.DataController;
 import cs43.group4.controllers.EFAController;
 import cs43.group4.controllers.FAController;
+import cs43.group4.controllers.QualityController;
 import cs43.group4.utils.Log;
 import io.javalin.Javalin;
 import java.util.Map;
@@ -19,9 +20,13 @@ public class Main {
                 })
                 .start(PORT);
 
+        QualityController qualityController = new QualityController();
         FAController faController = new FAController();
         EFAController efaController = new EFAController();
         DataController dataController = new DataController();
+
+        faController.setQualityController(qualityController);
+        efaController.setQualityController(qualityController);
 
         app.get("/health", ctx -> {
             Log.info("Health check requested");
@@ -120,5 +125,10 @@ public class Main {
         app.get("/efa/allocations", efaController::getAllocations);
         app.get("/efa/flows", efaController::getFlows);
         app.get("/efa/objectives", efaController::getObjectives);
+
+        // Register quality endpoints
+        app.get("/quality/comparison", qualityController::getComparison);
+        app.get("/quality/fa", qualityController::getFAQualities);
+        app.get("/quality/efa", qualityController::getEFAQualities);
     }
 }
