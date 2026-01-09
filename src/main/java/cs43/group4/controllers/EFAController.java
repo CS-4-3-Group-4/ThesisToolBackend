@@ -12,6 +12,11 @@ import java.util.concurrent.Executors;
 public class EFAController {
     private EFARunner runner = null;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private QualityController qualityController;
+
+    public void setQualityController(QualityController controller) {
+        this.qualityController = controller;
+    }
 
     // ========== GENERAL ENDPOINTS (work for both single and multiple) ==========
 
@@ -152,6 +157,12 @@ public class EFAController {
             executor.submit(() -> {
                 try {
                     runner.runMultiple();
+
+
+                    if (qualityController != null) {
+                        qualityController.setEFAQualities(runner.getScenarioQualities());
+                    }
+
                     Log.info("EFA multiple scenarios completed successfully");
                 } catch (Exception e) {
                     Log.error("EFA multiple scenarios failed: %s", e.getMessage(), e);
