@@ -17,6 +17,8 @@ import cs43.group4.core.ObjectiveFunction;
 import cs43.group4.core.ScenarioManager;
 import cs43.group4.core.ThesisObjective;
 import cs43.group4.parameters.EFAParams;
+import cs43.group4.stats.ScenarioQuality;
+import cs43.group4.stats.SolutionQualityIntegration;
 import cs43.group4.utils.AllocationNormalizer;
 import cs43.group4.utils.AllocationResult;
 import cs43.group4.utils.FlowResult;
@@ -54,6 +56,8 @@ public class EFARunner {
     private final List<List<AllocationResult>> multipleRunAllocations = new CopyOnWriteArrayList<>();
     private long multiRunStartTime;
     private long multiRunEndTime;
+
+    private final List<ScenarioQuality> scenarioQualities = new CopyOnWriteArrayList<>();
 
     // Objective logging (for analysis)
     private ObjectiveLogger objectiveLogger = null;
@@ -102,6 +106,7 @@ public class EFARunner {
         multipleRunErrors.clear();
         multipleValidationResults.clear();
         multipleRunAllocations.clear();
+        scenarioQualities.clear();
         multiRunStartTime = System.currentTimeMillis();
 
         objectiveLogger = new ObjectiveLogger(false);
@@ -405,6 +410,10 @@ public class EFARunner {
                 multipleValidationResults.add(validation);
             }
 
+            // Calculate and store solution quality
+            ScenarioQuality quality = SolutionQualityIntegration.calculateQualityForRun(scenarioNumber, allocations, data);
+            scenarioQualities.add(quality);
+
             // For multiple runs, just store minimal results
             results = Map.of(
                     "fitnessMaximization", bestFitness,
@@ -415,6 +424,9 @@ public class EFARunner {
     }
 
     // ========== STATUS & RESULTS ==========
+    public List<ScenarioQuality> getScenarioQualities() {
+        return new ArrayList<>(scenarioQualities);
+    }
 
     public Map<String, Object> getObjectiveData() {
         if (objective1Data == null) {
