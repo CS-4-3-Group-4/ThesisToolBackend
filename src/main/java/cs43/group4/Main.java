@@ -40,6 +40,11 @@ public class Main {
         Log.info("  Utility:");
         Log.info("    GET  /health                             - Health check");
         Log.info("");
+        Log.info("Solution Quality:");
+        Log.info("  GET  /quality/comparison                  - Get comparison of all scenarios");
+        Log.info("  GET  /quality/fa                          - Get FA solution quality");
+        Log.info("  GET  /quality/efa                         - Get EFA solution quality");
+        Log.info("");
         Log.info("  FA Algorithm:");
         Log.info("    General:");
         Log.info("      GET  /fa/status                        - Get current status");
