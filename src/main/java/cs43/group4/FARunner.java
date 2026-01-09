@@ -322,25 +322,45 @@ public class FARunner {
             double obj1 = (double) Cz / (double) Z;
             objective1Data = objectiveLogger.storeObjective1Data(Cz, Z, obj1);
 
-            // Obj2
+            // Obj2 (normalized to [0,1] using r in [1,3])
             double obj2sum = 0.0;
             for (int i = 0; i < Z; i++) {
                 double logTerm = Math.log(1.0 + Math.max(0.0, data.r[i]));
                 for (int c = 0; c < C; c++) obj2sum += Math.max(0.0, A[i][c]) * logTerm;
             }
-            double obj2 = Math.min(1.0, Math.max(0.0, obj2sum / denomP));
+            double avgLog = obj2sum / denomP;
+            final double maxLog = Math.log(1.0 + 3.0);
+            double obj2 = avgLog / Math.max(eps, maxLog);
+            obj2 = Math.min(1.0, Math.max(0.0, obj2));
             objective2Data = objectiveLogger.storeObjective2Data(A, data.r, P, Z, C, obj2);
 
-            // Obj3
-            double mean = 0.0;
-            for (double v : totalPerI) mean += v;
-            mean /= Math.max(1, Z);
-            double var = 0.0;
-            for (double v : totalPerI) {
-                double d = v - mean;
-                var += d * d;
+            // Obj3 (affected-only: use barangays with flood depth >= threshold)
+            int affectedCount = 0;
+            double sumAffected = 0.0;
+            for (int i = 0; i < Z; i++) {
+                if (data.f[i] >= cs43.group4.core.Constants.UNAFFECTED_FLOOD_DEPTH_FT) {
+                    affectedCount++;
+                    sumAffected += totalPerI[i];
+                }
             }
-            double std = Math.sqrt(var / Math.max(1, Z));
+
+            double mean;
+            if (affectedCount > 0) {
+                mean = sumAffected / affectedCount;
+            } else {
+                mean = 0.0;
+            }
+
+            double var = 0.0;
+            if (affectedCount > 0) {
+                for (int i = 0; i < Z; i++) {
+                    if (data.f[i] >= cs43.group4.core.Constants.UNAFFECTED_FLOOD_DEPTH_FT) {
+                        double d = totalPerI[i] - mean;
+                        var += d * d;
+                    }
+                }
+            }
+            double std = Math.sqrt(var / Math.max(1, affectedCount));
             double obj3 = std / (mean + eps);
             objective3Data = objectiveLogger.storeObjective3Data(totalPerI, mean, std, eps, obj3);
 
@@ -367,9 +387,13 @@ public class FARunner {
             for (int i = 0; i < Z; i++) {
                 double Ai = totalPerI[i];
                 double DPi = Math.max(0.0, data.E[i]);
-                obj5sum += (Ai / denomP) * DPi;
+                double dpNorm = (DPi > 1.0) ? (DPi / 100.0) : DPi;
+                dpNorm = Math.min(1.0, Math.max(0.0, dpNorm));
+                obj5sum += (Ai / denomP) * dpNorm;
             }
-            double obj5 = obj5sum / Math.max(1, Z);
+            double obj5Raw = Math.min(1.0, Math.max(0.0, obj5sum));
+            final double gammaB = 0.5; 
+            double obj5 = Math.pow(obj5Raw, gammaB);
             objective5Data = objectiveLogger.storeObjective5Data(totalPerI, data.E, Z, eps, obj5);
         }
 

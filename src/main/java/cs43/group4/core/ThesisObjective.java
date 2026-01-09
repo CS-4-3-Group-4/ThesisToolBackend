@@ -149,12 +149,16 @@ public class ThesisObjective extends ObjectiveFunction {
         double obj1 = (double) Cz / (double) Z;
 
         // Objective2: Prioritization Fulfillment
+
         double obj2sum = 0.0;
         for (int i = 0; i < Z; i++) {
             double logTerm = Math.log(1.0 + Math.max(0.0, r[i]));
             for (int c = 0; c < C; c++) obj2sum += A[i][c] * logTerm;
         }
-        double obj2 = Math.min(1.0, Math.max(0.0, obj2sum / denomP));
+        double avgLog = obj2sum / denomP;
+        final double maxLog = Math.log(1.0 + 3.0);
+        double obj2 = avgLog / Math.max(eps, maxLog);
+        obj2 = Math.min(1.0, Math.max(0.0, obj2));
 
         // Objective3: Distribution Imbalance (std/mean) over AFFECTED barangays only
         int affectedCount = 0;
@@ -201,14 +205,18 @@ public class ThesisObjective extends ObjectiveFunction {
         double obj4 = obj4sum / (Z * C);
 
         // Objective5: Displaced Population Index (uses E as DP/vulnerability index)
-        // Objective5 = (1/Z) * sum_i ( (A_i / (sum_j A_j + eps)) * DP_i )
         double obj5sum = 0.0;
         for (int i = 0; i < Z; i++) {
             double Ai = totalPerI[i];
             double DPi = Math.max(0.0, E[i]);
-            obj5sum += (Ai / denomP) * DPi; // weights DP by share of total allocation
+            // Normalize DP if given as percentage (>1): map to fraction in [0,1]
+            double dpNorm = (DPi > 1.0) ? (DPi / 100.0) : DPi;
+            dpNorm = Math.min(1.0, Math.max(0.0, dpNorm));
+            obj5sum += (Ai / denomP) * dpNorm; // weighted average of DP by share of allocation
         }
-        double obj5 = obj5sum / Math.max(1, Z);
+        double obj5Raw = Math.min(1.0, Math.max(0.0, obj5sum));
+        final double gammaB = 0.5; 
+        double obj5 = Math.pow(obj5Raw, gammaB);
 
         double fitness = obj1 + obj2 - obj3 + obj4 + obj5;
 

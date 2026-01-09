@@ -1,12 +1,13 @@
 package cs43.group4.core;
 
-import cs43.group4.utils.Log;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+
+import cs43.group4.utils.Log;
 
 /**
  * Manages multiple flood scenario CSV files for barangay data.
