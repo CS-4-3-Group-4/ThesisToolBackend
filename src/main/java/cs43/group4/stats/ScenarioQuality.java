@@ -31,11 +31,11 @@ public class ScenarioQuality {
 
         for (BarangayScore bs : barangayScores) {
             sumAllocated += bs.allocated;
-            sumRequired += bs.required;
+            sumRequired += bs.ideal;
 
             // Only include affected barangays (not "None") in SQ calculation
             if (!bs.hazardLevel.equals("None")) {
-                sumScores += bs.score;
+                sumScores += bs.solutionQuality;
                 affected++;
             }
         }
