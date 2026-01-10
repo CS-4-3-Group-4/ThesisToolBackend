@@ -1,5 +1,6 @@
 package cs43.group4.stats;
 
+import cs43.group4.utils.MathUtils;
 
 /**
  * Represents the solution quality evaluation for a single barangay.
@@ -38,6 +39,7 @@ public class BarangayScore {
      */
     public double percentageChange(BarangayScore other) {
         double epsilon = 1e-6;
-        return ((this.score - other.score) / (other.score + epsilon)) * 100.0;
+        double change = ((this.score - other.score) / (other.score + epsilon)) * 100.0;
+        return MathUtils.round(change, 2);
     }
 }

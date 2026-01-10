@@ -5,6 +5,8 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import cs43.group4.utils.MathUtils;
+
 /**
  * Represents the overall quality comparison across all scenarios (SOP 1 Result).
  * Includes Equation 4: Mean ΔSQ
@@ -47,7 +49,7 @@ public class OverallQualityComparison {
             ScenarioQuality efaScenario = efaQualities.get(i);
 
             double change = efaScenario.percentageChange(faScenario);
-            scenarioPercentageChanges.add(change);
+            scenarioPercentageChanges.add(MathUtils.round(change, 2));
             sumChanges += change;
 
             if (change < minChange) minChange = change;
@@ -69,22 +71,12 @@ public class OverallQualityComparison {
             ));
         }
 
-
-        this.meanPercentageChange = minSize > 0 ? sumChanges / minSize : 0.0;
-        this.minPercentageChange = minSize > 0 ? minChange : 0.0;
-        this.maxPercentageChange = minSize > 0 ? maxChange : 0.0;
+        this.meanPercentageChange = MathUtils.round(minSize > 0 ? sumChanges / minSize : 0.0, 2);
+        this.minPercentageChange = MathUtils.round(minSize > 0 ? minChange : 0.0, 2);
+        this.maxPercentageChange = MathUtils.round(minSize > 0 ? maxChange : 0.0, 2);
         this.improvedScenarios = improved;
         this.unchangedScenarios = unchanged;
         this.degradedScenarios = degraded;
-
-        // // Calculate standard deviation
-        // double sumSquaredDiff = 0.0;
-        // for (double change : scenarioPercentageChanges) {
-        //     double diff = change - meanPercentageChange;
-        //     sumSquaredDiff += diff * diff;
-        // }
-        // this.stdDevPercentageChange = minSize > 1 ?
-        //     Math.sqrt(sumSquaredDiff / (minSize - 1)) : 0.0;
 
         // Calculate mean SQ for both algorithms
         double faSum = 0.0;
@@ -92,8 +84,11 @@ public class OverallQualityComparison {
         for (ScenarioQuality sq : faQualities) faSum += sq.solutionQuality;
         for (ScenarioQuality sq : efaQualities) efaSum += sq.solutionQuality;
 
-        this.faMeanSQ = faQualities.size() > 0 ? faSum / faQualities.size() : 0.0;
-        this.efaMeanSQ = efaQualities.size() > 0 ? efaSum / efaQualities.size() : 0.0;
+        double faMeanSQ = faQualities.size() > 0 ? faSum / faQualities.size() : 0.0;
+        double efaMeanSQ = efaQualities.size() > 0 ? efaSum / efaQualities.size() : 0.0;
+
+        this.faMeanSQ = MathUtils.round(faMeanSQ, 2);
+        this.efaMeanSQ = MathUtils.round(efaMeanSQ, 2);
     }
 
     public List<ScenarioQuality> getFaQualities() { return faQualities; }

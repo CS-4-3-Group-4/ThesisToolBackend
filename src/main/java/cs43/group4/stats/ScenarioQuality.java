@@ -3,6 +3,8 @@ package cs43.group4.stats;
 import java.util.ArrayList;
 import java.util.List;
 
+import cs43.group4.utils.MathUtils;
+
 /**
  * Represents the solution quality for a single scenario.
  * SQ_s = average of all barangay scores in the scenario
@@ -43,7 +45,7 @@ public class ScenarioQuality {
         this.affectedBarangays = affected;
 
         // Use affected, not totalBarangays
-        this.solutionQuality = affected > 0 ? sumScores / affected : 0.0;
+        this.solutionQuality = MathUtils.round(affected > 0 ? sumScores / affected : 0.0, 2);
     }
 
     /**
@@ -52,8 +54,8 @@ public class ScenarioQuality {
      */
     public double percentageChange(ScenarioQuality other) {
         double epsilon = 1e-6;
-        return ((this.solutionQuality - other.solutionQuality) /
-                (other.solutionQuality + epsilon)) * 100.0;
+        double change = ((this.solutionQuality - other.solutionQuality) / (other.solutionQuality + epsilon)) * 100.0;
+        return MathUtils.round(change, 2);
     }
 
     /**
