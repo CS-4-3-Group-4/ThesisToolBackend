@@ -22,7 +22,8 @@ public class BarangayScore {
 
         // BS_b = min(A_b / R_b, 1.0)
         if (required > 0) {
-            this.score = Math.min(1.0, (double) allocated / required);
+            // this.score = Math.min(1.0, (double) allocated / required);
+            this.score = (allocated - required) / required;
         } else {
             // No personnel required (hazardLevel = "None")
             // Score = 1.0 if correctly allocated nothing (A_b = 0)
