@@ -16,7 +16,7 @@ public class ScenarioQuality {
     public final long totalAllocated;
     public final long totalRequired;
 
-public ScenarioQuality(int scenarioNumber, List<BarangayScore> barangayScores) {
+    public ScenarioQuality(int scenarioNumber, List<BarangayScore> barangayScores) {
         this.scenarioNumber = scenarioNumber;
         this.barangayScores = new ArrayList<>(barangayScores);
         this.totalBarangays = barangayScores.size();
