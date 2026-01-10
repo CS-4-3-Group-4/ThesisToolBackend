@@ -6,17 +6,17 @@ package cs43.group4.stats;
 public class BarangayComparison {
     public final String barangayId;
     public final String barangayName;
-    public final BarangayScore baselineScore;  // FA
-    public final BarangayScore comparisonScore; // EFA
+    public final BarangayScore barangayFAScore;  // FA
+    public final BarangayScore barangayEFAScore; // EFA
     public final double percentageChange;
 
     public BarangayComparison(String barangayId, String barangayName,
-                             BarangayScore baseline, BarangayScore comparison,
+                             BarangayScore barangayFAScore, BarangayScore barangayEFAScore,
                              double percentageChange) {
         this.barangayId = barangayId;
         this.barangayName = barangayName;
-        this.baselineScore = baseline;
-        this.comparisonScore = comparison;
+        this.barangayFAScore = barangayFAScore;
+        this.barangayEFAScore = barangayEFAScore;
         this.percentageChange = percentageChange;
     }
 
