@@ -16,7 +16,7 @@ import cs43.group4.utils.Log;
  */
 public class ScenarioManager {
 
-    private static final int TOTAL_SCENARIOS = 30;
+    private static final int TOTAL_SCENARIOS = 3;
     private static final Path SCENARIOS_DIR = Paths.get("data", "scenarios");
     private static final Path DEFAULT_CSV = Paths.get("data", "barangays.csv");
 

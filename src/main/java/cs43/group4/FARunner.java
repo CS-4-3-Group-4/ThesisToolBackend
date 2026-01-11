@@ -56,6 +56,7 @@ public class FARunner {
     private final List<String> multipleRunErrors = new CopyOnWriteArrayList<>();
     private final List<ValidationSingleResult> multipleValidationResults = new CopyOnWriteArrayList<>();
     private final List<List<AllocationResult>> multipleRunAllocations = new CopyOnWriteArrayList<>();
+    private final List<List<FlowResult>> multipleRunFlows = new CopyOnWriteArrayList<>();
     private long multiRunStartTime;
     private long multiRunEndTime;
 
@@ -108,6 +109,7 @@ public class FARunner {
         multipleRunErrors.clear();
         multipleValidationResults.clear();
         multipleRunAllocations.clear();
+        multipleRunFlows.clear();
         scenarioQualities.clear();
         multiRunStartTime = System.currentTimeMillis();
 
@@ -423,6 +425,14 @@ public class FARunner {
             allocations.addAll(createAllocations(A, data));
             multipleRunAllocations.add(new ArrayList<>(allocations));
 
+            var flow = (data.lat != null && data.lon != null)
+                    ? FlowAllocator.allocate(A, currentPerClass, data.lat, data.lon)
+                    : FlowAllocator.allocate(A, currentPerClass);
+
+            flows.clear();
+            flows.addAll(createFlows(flow.flows, data));
+            multipleRunFlows.add(new ArrayList<>(flows));
+
             // Generate validation for this run
             ValidationSingleResult validation = generateValidation(data, allocations);
             if (!validation.hasError()) {
@@ -608,6 +618,14 @@ public class FARunner {
 
     public List<FlowResult> getFlows() {
         return new ArrayList<>(flows);
+    }
+
+    public List<List<FlowResult>> getFlowsMultipleRuns() {
+        if (totalRuns <= 1) {
+            return new ArrayList<>();
+        }
+
+        return new ArrayList<>(multipleRunFlows);
     }
 
     public List<IterationResult> getIterationHistory() {

@@ -203,9 +203,7 @@ public class FAController {
         } else {
             Map<String, Object> status = runner.getStatus();
             if ("multiple".equals(status.get("mode"))) {
-                ctx.json(Map.of(
-                        "error", "Flows not available for multiple runs",
-                        "suggestion", "Only available for single runs"));
+                ctx.json(Map.of("flows", runner.getFlowsMultipleRuns()));
             } else {
                 ctx.json(Map.of("flows", runner.getFlows()));
             }

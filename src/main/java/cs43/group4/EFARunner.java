@@ -54,6 +54,7 @@ public class EFARunner {
     private final List<String> multipleRunErrors = new CopyOnWriteArrayList<>();
     private final List<ValidationSingleResult> multipleValidationResults = new CopyOnWriteArrayList<>();
     private final List<List<AllocationResult>> multipleRunAllocations = new CopyOnWriteArrayList<>();
+    private final List<List<FlowResult>> multipleRunFlows = new CopyOnWriteArrayList<>();
     private long multiRunStartTime;
     private long multiRunEndTime;
 
@@ -395,7 +396,7 @@ public class EFARunner {
                 obj5sum += (Ai / denomP) * dpNorm;
             }
             double obj5Raw = Math.min(1.0, Math.max(0.0, obj5sum));
-            final double gammaB = 0.5; 
+            final double gammaB = 0.5;
             double obj5 = Math.pow(obj5Raw, gammaB);
             objective5Data = objectiveLogger.storeObjective5Data(totalPerI, data.E, Z, eps, obj5);
         }
@@ -427,6 +428,14 @@ public class EFARunner {
             allocations.clear();
             allocations.addAll(createAllocations(A, data));
             multipleRunAllocations.add(new ArrayList<>(allocations));
+
+            var flow = (data.lat != null && data.lon != null)
+                    ? FlowAllocator.allocate(A, currentPerClass, data.lat, data.lon)
+                    : FlowAllocator.allocate(A, currentPerClass);
+
+            flows.clear();
+            flows.addAll(createFlows(flow.flows, data));
+            multipleRunFlows.add(new ArrayList<>(flows));
 
             // Generate validation for this run
             ValidationSingleResult validation = generateValidation(data, allocations);
@@ -609,6 +618,14 @@ public class EFARunner {
 
     public List<FlowResult> getFlows() {
         return new ArrayList<>(flows);
+    }
+
+    public List<List<FlowResult>> getFlowsMultipleRuns() {
+        if (totalRuns <= 1) {
+            return new ArrayList<>();
+        }
+
+        return new ArrayList<>(multipleRunFlows);
     }
 
     public List<IterationResult> getIterationHistory() {
