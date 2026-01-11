@@ -186,7 +186,7 @@ public class FAController {
         } else {
             Map<String, Object> status = runner.getStatus();
             if ("multiple".equals(status.get("mode"))) {
-                ctx.json(Map.of("allocations_multiple", runner.getAllocationsMultipleRuns()));
+                ctx.json(Map.of("allocations", runner.getAllocationsMultipleRuns()));
             } else {
                 ctx.json(Map.of("allocations", runner.getAllocations()));
             }
